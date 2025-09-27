@@ -34,10 +34,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         dbg!("Install", install);
     });
     callbacks.on_do_uninstall(|install| {
-        dbg!("Install", install);
+        dbg!("Uninstall", install);
     });
     callbacks.on_do_repair(|install| {
-        dbg!("Install", install);
+        dbg!("Repair", install);
     });
 
     app.run()?;
