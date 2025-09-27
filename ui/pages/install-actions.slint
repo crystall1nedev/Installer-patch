@@ -1,0 +1,21 @@
+import { BasePage } from "base-page.slint";
+import { DiscordInstallAdapter } from "../globals.slint";
+import { Button } from "std-widgets.slint";
+
+component Action inherits Button { }
+
+export component InstallAction inherits BasePage {
+    title: "Actions";
+
+    Action {
+        text: "Install Vencord";
+    }
+
+    Action {
+        text: "Repair Vencord";
+    }
+
+    Action {
+        text: "Uninstall Vencord";
+    }
+}

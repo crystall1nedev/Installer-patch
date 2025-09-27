@@ -1,0 +1,13 @@
+import { VerticalBox, Palette } from "std-widgets.slint";
+import { SettingsDialog } from "settings-dialog.slint";
+import { Pages } from "pages/pages.slint";
+
+export component AppWindow inherits Window {
+    preferred-width: 800px;
+    preferred-height: 600px;
+    title: "Vencord Installer";
+    background: Palette.background;
+    default-font-size: 16px;
+
+    Pages { }
+}

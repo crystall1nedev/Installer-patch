@@ -1,0 +1,25 @@
+import { HorizontalBox, Button } from "std-widgets.slint";
+import { RustCallbacks } from "../globals.slint";
+
+export component Footer inherits HorizontalBox {
+    callback back <=> back.clicked;
+    in property <bool> can_go_back: false;
+    height: 80px;
+
+    TouchArea {
+        clicked => RustCallbacks.open_settings();
+        Image {
+            height: 60px;
+            width: 60px;
+            source: @image-url("../assets/settings.svg");
+        }
+    }
+
+    Rectangle { }
+
+    back := Button {
+        height: 60px;
+        text: "Back";
+        enabled: can_go_back;
+    }
+}

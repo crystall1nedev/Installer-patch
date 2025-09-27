@@ -1,0 +1,50 @@
+import { BasePage } from "base-page.slint";
+import { DiscordInstallAdapter, DiscordInstall } from "../globals.slint";
+import { HorizontalBox, VerticalBox, Palette } from "std-widgets.slint";
+
+component DiscordInstall inherits Rectangle {
+    in property <DiscordInstall> install;
+    callback selected <=> touch.clicked;
+
+    background: Palette.control-background;
+    height: 100px;
+    HorizontalBox {
+        Image {
+            height: root.height;
+            width: root.height;
+            source: DiscordInstallAdapter.branch_icon(install.branch);
+        }
+
+        VerticalBox {
+            alignment: stretch;
+            Text {
+                text: DiscordInstallAdapter.branch_name(install.branch);
+                font-size: 20px;
+            }
+
+            Text {
+                text: install.folder-path;
+                font-size: 14px;
+                opacity: 0.5;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+export component InstallSelect inherits BasePage {
+    title: "Select Discord Installation";
+    spacing: 20px;
+    alignment: center;
+    for discord in DiscordInstallAdapter.installs: DiscordInstall {
+        install: discord;
+        selected => {
+            DiscordInstallAdapter.selected_install = discord;
+            root.next();
+        };
+    }
+}

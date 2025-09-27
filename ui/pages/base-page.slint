@@ -1,0 +1,15 @@
+import { VerticalBox, StyleMetrics } from "std-widgets.slint";
+
+export component BasePage inherits VerticalBox {
+    in property <string> title;
+    callback next;
+
+    alignment: start;
+    Text {
+        text: title;
+        font-size: 2rem;
+        horizontal-alignment: center;
+    }
+
+    @children
+}

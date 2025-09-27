@@ -1,0 +1,27 @@
+import { InstallSelect } from "install-select.slint";
+import { InstallAction } from "install-actions.slint";
+import { VerticalBox } from "std-widgets.slint";
+import { Footer } from "footer.slint";
+
+export component Pages inherits VerticalBox {
+    property <int> current_page_index: 0;
+
+    function next() {
+        current_page_index += 1;
+    }
+    if (current_page_index == 0): InstallSelect {
+        next => next();
+    }
+    if (current_page_index == 1): InstallAction {
+        next => next();
+    }
+
+    Footer {
+        can_go_back: current_page_index > 0;
+        back => {
+            if (current_page_index > 0) {
+                current_page_index -= 1;
+            }
+        };
+    }
+}
