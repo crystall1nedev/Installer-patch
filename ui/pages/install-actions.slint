@@ -1,5 +1,5 @@
 import { BasePage } from "base-page.slint";
-import { DiscordInstallAdapter } from "../globals.slint";
+import { DiscordInstallAdapter, RustCallbacks } from "../globals.slint";
 import { Button, VerticalBox } from "std-widgets.slint";
 
 component Action inherits Button { }
@@ -10,14 +10,17 @@ export component InstallAction inherits BasePage {
     VerticalBox {
         Action {
             text: "Install Vencord";
+            clicked => RustCallbacks.do_install(DiscordInstallAdapter.selected_install);
         }
 
         Action {
             text: "Repair Vencord";
+            clicked => RustCallbacks.do_repair(DiscordInstallAdapter.selected_install);
         }
 
         Action {
             text: "Uninstall Vencord";
+            clicked => RustCallbacks.do_uninstall(DiscordInstallAdapter.selected_install);
         }
     }
 }

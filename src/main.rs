@@ -30,6 +30,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         dialog.show().unwrap();
     });
 
+    callbacks.on_do_install(|install| {
+        dbg!("Install", install);
+    });
+    callbacks.on_do_uninstall(|install| {
+        dbg!("Install", install);
+    });
+    callbacks.on_do_repair(|install| {
+        dbg!("Install", install);
+    });
+
     app.run()?;
 
     Ok(())

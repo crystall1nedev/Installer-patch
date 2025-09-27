@@ -38,4 +38,8 @@ export global DiscordInstallAdapter {
 
 export global RustCallbacks {
     pure callback open_settings;
+
+    pure callback do_install(install: DiscordInstall);
+    pure callback do_uninstall(install: DiscordInstall);
+    pure callback do_repair(install: DiscordInstall);
 }
