@@ -1,25 +1,44 @@
-import { HorizontalBox, Button } from "std-widgets.slint";
+import { HorizontalBox, Button, Palette } from "std-widgets.slint";
 import { RustCallbacks } from "../globals.slint";
 
-export component Footer inherits HorizontalBox {
+export component Footer inherits Rectangle {
     callback back <=> back.clicked;
     in property <bool> can_go_back: false;
-    height: 80px;
 
-    TouchArea {
-        clicked => RustCallbacks.open_settings();
-        Image {
-            height: 60px;
-            width: 60px;
-            source: @image-url("../assets/settings.svg");
+    height: 76px;
+
+    background: Palette.alternate-background;
+    HorizontalBox {
+        alignment: stretch;
+        padding: 32px;
+        Rectangle {
+            Rectangle {
+                height: 48px;
+                width: 48px;
+
+                ta := TouchArea {
+                    clicked => RustCallbacks.open_settings();
+                }
+
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: @image-url("../assets/settings.svg");
+                    rotation-angle: ta.has-hover ? 360deg : 0deg;
+                    animate rotation-angle { duration: 250ms; }
+                }
+            }
         }
-    }
 
-    Rectangle { }
+        Rectangle { }
 
-    back := Button {
-        height: 60px;
-        text: "Back";
-        enabled: can_go_back;
+        Rectangle {
+            back := Button {
+                text: "Back";
+                height: 48px;
+                width: 120px;
+                enabled: can_go_back;
+            }
+        }
     }
 }

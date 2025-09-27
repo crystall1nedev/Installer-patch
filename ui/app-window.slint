@@ -3,11 +3,13 @@ import { SettingsDialog } from "settings-dialog.slint";
 import { Pages } from "pages/pages.slint";
 
 export component AppWindow inherits Window {
-    preferred-width: 800px;
-    preferred-height: 600px;
+    preferred-width: 900px;
+    min-width: self.preferred-width * 0.75;
+    preferred-height: self.preferred-width * 3 / 4;
+    min-height: self.preferred-height * 0.75;
     title: "Vencord Installer";
     background: Palette.background;
-    default-font-size: 16px;
+    default-font-size: 16 * (Math.min(self.width, self.height) / 600);
 
     Pages { }
 }

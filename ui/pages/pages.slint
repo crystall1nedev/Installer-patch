@@ -5,23 +5,26 @@ import { Footer } from "footer.slint";
 
 export component Pages inherits VerticalBox {
     property <int> current_page_index: 0;
+    padding: 0;
 
     function next() {
         current_page_index += 1;
     }
+
+    function back() {
+        if (current_page_index > 0) {
+            current_page_index -= 1;
+        }
+    }
+
     if (current_page_index == 0): InstallSelect {
         next => next();
+        back => back();
+        can_go_back: false;
     }
     if (current_page_index == 1): InstallAction {
         next => next();
-    }
-
-    Footer {
-        can_go_back: current_page_index > 0;
-        back => {
-            if (current_page_index > 0) {
-                current_page_index -= 1;
-            }
-        };
+        back => back();
+        can_go_back: true;
     }
 }
