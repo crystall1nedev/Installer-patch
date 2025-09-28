@@ -4616,7 +4616,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vencord-installer"
+name = "vencord-installer-gui"
 version = "0.1.0"
 dependencies = [
  "slint",
