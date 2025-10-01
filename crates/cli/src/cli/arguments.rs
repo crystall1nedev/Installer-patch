@@ -85,6 +85,7 @@ pub fn arg_commands(args: &ArgMatches) {
             error!("{}", err);
             exit(1);
         }
+        return;
     }
 
     select_options();
