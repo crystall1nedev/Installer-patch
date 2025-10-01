@@ -3,7 +3,7 @@
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use {
     std::process::exit,
-    logger_rs::error
+    vencord_installer_cli::error,
 };
 
 use vencord_installer_cli::cli::arguments;

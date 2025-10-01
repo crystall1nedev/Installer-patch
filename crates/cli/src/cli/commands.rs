@@ -6,9 +6,9 @@ use vencord_installer_core::paths::{branch::DiscordLocation, locations::get_data
 use vencord_installer_core::patch::{patch_mod::Installer, patch_openasar::OpenAsarInstaller};
 use vencord_installer_core::update::{download::prepare_dist_directory, version_check::{check_hash_from_release, check_local_version}};
 
-use logger_rs::{info, success, warn};
 use tokio::runtime::Runtime;
 
+use crate::{info, success, warn};
 use crate::{OPENASAR_URL, RELEASE_TAG_DOWNLOAD, RELEASE_URL, RELEASE_URL_FALLBACK, USER_AGENT};
 
 use super::select_location::select_location;

@@ -2,7 +2,7 @@ use std::process::exit;
 
 use clap::{builder::styling, Arg, ArgMatches, Command};
 
-use logger_rs::error;
+use crate::error;
 
 use super::commands::{install, uninstall};
 

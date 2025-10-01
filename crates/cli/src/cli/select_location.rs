@@ -1,20 +1,10 @@
 use std::process::exit;
-use colored::Colorize;
-use logger_rs::{error, info};
+use crate::{error, info};
 use vencord_installer_core::paths::{
-    branch::{DiscordBranch, DiscordLocation},
+    branch::DiscordLocation,
     locations::get_discord_locations
 };
 use console::{Key, Term};
-
-fn make_colored_branch_string(branch: &DiscordBranch) -> String {
-    match branch {
-        DiscordBranch::Stable => "Stable".truecolor(93, 107, 243).bold().to_string(),
-        DiscordBranch::PTB => "PTB".truecolor(67, 150, 226).bold().to_string(),
-        DiscordBranch::Canary => "Canary".truecolor(251, 183, 71).bold().to_string(),
-        DiscordBranch::Development => "Development".bold().to_string()
-    }
-}
 
 pub fn select_location() -> DiscordLocation {
     let prompt = "Use ↑ ↓ to navigate, Enter to select, Esc to cancel.";
@@ -29,17 +19,17 @@ pub fn select_location() -> DiscordLocation {
 
     let items: Vec<String> = locations.iter().map(|location| {
         let mut instance = Vec::new();
-        instance.push(make_colored_branch_string(&location.branch));
+        instance.push(location.branch.to_string());
         if location.is_flatpak {
-            instance.push("Flatpak".white().bold().to_string());
+            instance.push("Flatpak".to_owned());
         }
 
         let mut tags = Vec::new();
         if location.patched {
-            tags.push("Vencord".truecolor(255, 192, 203).bold().to_string());
+            tags.push("Vencord");
         }
         if location.openasar {
-            tags.push("OpenAsar".white().bold().to_string());
+            tags.push("OpenAsar");
         }
 
         let tags_str = if tags.is_empty() { String::new() } else { format!(" + {}", tags.join(", ")) };
@@ -48,7 +38,7 @@ pub fn select_location() -> DiscordLocation {
             "{}{} – {}",
             instance.join(", "),
             tags_str,
-            location.path.to_string().truecolor(168, 168, 168)
+            location.path.to_string()
         )
     }).collect();
 
@@ -57,12 +47,12 @@ pub fn select_location() -> DiscordLocation {
 
     loop {
         term.clear_screen().ok();
-        println!("{}", prompt.bold());
+        println!("{}", prompt);
         println!();
 
         for (i, item) in items.iter().enumerate() {
             if i == index {
-                println!("{} {}", "→".green().bold(), item);
+                println!("{} {}", "→", item);
             } else {
                 println!("  {}", item);
             }
