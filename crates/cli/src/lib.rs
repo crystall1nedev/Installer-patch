@@ -9,7 +9,6 @@ pub const USER_AGENT: &str = "VencordInstaller (https://github.com/Vencord/Insta
 pub const INFO: &str = "INFO";
 pub const WARN: &str = "WARN";
 pub const ERROR: &str = "ERROR";
-pub const FATAL: &str = "FATAL";
 pub const SUCCESS: &str = "SUCCESS";
 
 pub fn log(tag: &str, message: &str) {
@@ -34,13 +33,6 @@ macro_rules! warn {
 macro_rules! error {
     ($($arg:tt)*) => (
         $crate::log($crate::ERROR, &format!($($arg)*))
-    )
-}
-
-#[macro_export]
-macro_rules! fatal {
-    ($($arg:tt)*) => (
-        $crate::log($crate::FATAL, &format!($($arg)*))
     )
 }
 
