@@ -11,7 +11,7 @@ use tokio::runtime::Runtime;
 use crate::{info, success, warn};
 use crate::{OPENASAR_URL, RELEASE_TAG_DOWNLOAD, RELEASE_URL, RELEASE_URL_FALLBACK, USER_AGENT};
 
-use super::select_location::select_location;
+use super::selections::select_location;
 
 // MARK: - Install
 

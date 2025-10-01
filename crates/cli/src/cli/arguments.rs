@@ -2,7 +2,7 @@ use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
 
-use crate::error;
+use crate::{cli::selections::select_options, error};
 
 use super::commands::{install, uninstall};
 
@@ -46,7 +46,6 @@ pub fn args_build() -> Command {
                 .value_name("PATH")
                 .num_args(1),
         )
-        .arg_required_else_help(true)
 }
 
 pub fn arg_conflicts(args: &ArgMatches) {
@@ -87,4 +86,6 @@ pub fn arg_commands(args: &ArgMatches) {
             exit(1);
         }
     }
+
+    select_options();
 }
