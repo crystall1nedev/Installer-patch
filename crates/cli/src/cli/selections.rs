@@ -34,10 +34,10 @@ pub fn select_location() -> DiscordLocation {
             tags.push("[OPENASAR]");
         }
 
-        let tags_str = if tags.is_empty() { String::new() } else { format!("{}", tags.join(" ")) };
+        let tags_str = if tags.is_empty() { String::new() } else { format!(" {}", tags.join(" ")) };
 
         format!(
-            "{} {} – {}",
+            "{}{} – {}",
             instance.join(", "),
             tags_str,
             location.path.to_string()
