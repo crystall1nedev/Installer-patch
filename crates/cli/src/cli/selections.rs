@@ -1,11 +1,16 @@
 use std::process::exit;
-use crate::{cli::commands::{install, uninstall}, error, info};
+
 use vencord_installer_core::paths::{
     branch::DiscordLocation,
     locations::get_discord_locations
 };
+
 use console::style;
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::Select;
+
+use crate::{info, error};
+
+use super::commands::{install, uninstall};
 
 pub fn select_location() -> DiscordLocation {
     let locations = get_discord_locations().unwrap_or_default();
@@ -39,8 +44,8 @@ pub fn select_location() -> DiscordLocation {
         )
     }).collect();
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt(style("Use ↑ ↓ and Enter to select a Discord location.").bold().to_string())
+    let selection = Select::new()
+        .with_prompt(style("Use ↑ ↓ and Enter to select a Discord location").bold().to_string())
         .items(&items)
         .default(0)
         .interact();
@@ -63,8 +68,8 @@ pub fn select_options() {
         "Exit",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt(style("Use ↑ ↓ and Enter to select an option.").bold().to_string())
+    let selection = Select::new()
+        .with_prompt(style("Use ↑ ↓ and Enter to select an option").bold().to_string())
         .items(&options)
         .default(0)
         .interact();
