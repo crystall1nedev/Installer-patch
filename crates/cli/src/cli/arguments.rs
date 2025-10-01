@@ -1,16 +1,10 @@
 use std::process::exit;
 
-use clap::{builder::styling, Arg, ArgMatches, Command};
+use clap::{Arg, ArgMatches, Command};
 
 use crate::error;
 
 use super::commands::{install, uninstall};
-
-const STYLES: styling::Styles = styling::Styles::styled()
-    .header(styling::AnsiColor::Green.on_default().bold())
-    .usage(styling::AnsiColor::Green.on_default().bold())
-    .literal(styling::AnsiColor::Cyan.on_default().bold())
-    .placeholder(styling::AnsiColor::Cyan.on_default());
 
 pub fn args_build() -> Command {
     Command::new("vencord installer")
@@ -52,7 +46,6 @@ pub fn args_build() -> Command {
                 .value_name("PATH")
                 .num_args(1),
         )
-        .styles(STYLES)
         .arg_required_else_help(true)
 }
 
