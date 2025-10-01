@@ -28,16 +28,16 @@ pub fn select_location() -> DiscordLocation {
 
         let mut tags = Vec::new();
         if location.patched {
-            tags.push("Vencord");
+            tags.push("[PATCHED]");
         }
         if location.openasar {
-            tags.push("OpenAsar");
+            tags.push("[OPENASAR]");
         }
 
-        let tags_str = if tags.is_empty() { String::new() } else { format!(" + {}", tags.join(", ")) };
+        let tags_str = if tags.is_empty() { String::new() } else { format!("{}", tags.join(" ")) };
 
         format!(
-            "{}{} – {}",
+            "{} {} – {}",
             instance.join(", "),
             tags_str,
             location.path.to_string()
@@ -82,8 +82,8 @@ pub fn select_options() {
     match choice {
         0 => {
             if let Err(err) = install(true, false, None) {
-                error!("{}", err);
-                exit(1);
+            error!("{}", err);
+            exit(1);
             }
         }
         1 => {
