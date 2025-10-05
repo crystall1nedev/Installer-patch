@@ -2,7 +2,9 @@ use std::process::exit;
 
 use clap::{Arg, ArgMatches, Command};
 
-use crate::{cli::selections::select_options, error};
+use vencord_installer_shared::error;
+
+use crate::cli::selections::select_options;
 
 use super::commands::{install, uninstall};
 

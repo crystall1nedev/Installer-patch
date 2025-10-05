@@ -4,11 +4,10 @@ use vencord_installer_core::paths::{
     branch::DiscordLocation,
     locations::get_discord_locations
 };
+use vencord_installer_shared::{error, info};
 
 use console::style;
 use dialoguer::Select;
-
-use crate::{info, error};
 
 use super::commands::{install, uninstall};
 

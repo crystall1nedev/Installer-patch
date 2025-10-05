@@ -1,12 +1,8 @@
 [package]
-name = "vencord-installer-cli"
-version = "2.0.0"
+name = "vencord-installer-shared"
+version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 vencord-installer-core = { path = "../core", features = ["openasar", "version_check", "generate_asar"] }
-vencord-installer-shared = { path = "../shared" }
-clap = { version = "4.0", features = ["derive"] }
 tokio = { version = "1.42.0", features = ["full"] }
-dialoguer = "0.12.0"
-console = "0.16.1"
