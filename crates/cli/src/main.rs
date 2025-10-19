@@ -1,12 +1,14 @@
 #![allow(rustdoc::missing_crate_level_docs)]
 
+mod cli;
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use {
     std::process::exit,
     vencord_installer_shared::error,
 };
 
-use vencord_installer_cli::cli::arguments;
+use cli::arguments;
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 unsafe extern "C" {
