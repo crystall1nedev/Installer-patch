@@ -163,6 +163,6 @@ impl Installer {
 
     #[cfg(target_os = "linux")]
     pub fn fix_permissions(&self) {
-
+        todo!();
     }
 }
