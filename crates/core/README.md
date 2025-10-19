@@ -1,4 +1,4 @@
-# libvencord
+# vencord-installer-core
 
 Various utilities made for [Vencord Installer](https://github.com/Vencord/Installer), which includes utilities to patch and unpatch mods for Discord. 
 
@@ -21,7 +21,7 @@ const RELEASE_TAG_DOWNLOAD: &str = "https://github.com/Vendicated/Vencord/releas
 // services, so we make this required for when downloading 
 // files, for this we use the package name, however you can
 // use something else
-const USER_AGENT: &str = "(libvencord) (https://github.com/Vencord/Installer/crates/libvencord)";
+const USER_AGENT: &str = "(vencord-installer-core) (https://github.com/Vencord/Installer)";
 
 fn main() {
     let _ = prepare_dist_directory(
@@ -40,7 +40,7 @@ fn main() {
 
 This function is meant for preparing a dist directory for your mod files, for instance, it will download `https://github.com/Vendicated/Vencord/releases/download/devbuild/patcher.js` along with other included files and put them in your dist directory.
 
-It will also create a `package.json`, without this, node will walk up the file tree and search for a package.json in the parent folders. This might lead to issues if the user for example has `~/package.jso` with type: "module" in it.
+It will also create a `package.json`, without this, node will walk up the file tree and search for a package.json in the parent folders. This might lead to issues if the user for example has `~/package.json` with type: "module" in it.
 
 ### Finding the discord locations
 
@@ -97,11 +97,7 @@ Some(
 
 Here's the output of the code we've provided, this example shows all the Discord locations found in the `/Applications` directory, if there were any Discord locations inside of `~/Applications` it would show in the output. Do note that it does not account for custom names that people may name their Discord applications, this does not raise any significance to us as no one really does this.
 
-There's another thing worth detailing about the output, it has information on if it's patched or if it has OpenAsar, which should tell you that this library also supports the installation of [OpenAsar](https://github.com/GooseMod/OpenAsar)! Via our features
-
-```toml
-libvencord = { ... features = ["openasar"] }
-```
+There's another thing worth detailing about the output, it has information on if it's patched or if it has OpenAsar, which should tell you that this library also supports the installation of [OpenAsar](https://github.com/GooseMod/OpenAsar)! 
 
 ### Patching discord
 
@@ -168,6 +164,3 @@ It's as simple as this, your client mod will completely be removed. However, jus
 We have some built in handling just in case anything goes wrong, use that if you can! 
 
 If theres an instance that a specific error when installing the mod that needs to be known, feel free to let us know.
-
-## License
-<!-- TODO: this -->
