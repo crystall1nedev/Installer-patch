@@ -6,3 +6,15 @@ members = [
     "crates/core", 
     "crates/shared",
 ]
+
+[workspace.package]
+edition = "2024"
+version = "2.0.0"
+authors = [
+    "khcrysalis <s03781614@icloud.com>", 
+    "V <vendicated@riseup.net>"
+]
+repository = "https://github.com/Vencord/Installer"
+
+[workspace.dependencies]
+tokio = { version = "1.42.0", features = ["full"] }

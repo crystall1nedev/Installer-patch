@@ -5444,7 +5444,7 @@ dependencies = [
 
 [[package]]
 name = "vencord-installer-core"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "regex",
  "reqwest",
@@ -5456,7 +5456,7 @@ dependencies = [
 
 [[package]]
 name = "vencord-installer-gui"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "slint",
  "slint-build",
@@ -5467,7 +5467,7 @@ dependencies = [
 
 [[package]]
 name = "vencord-installer-shared"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
  "tokio",
  "vencord-installer-core",
