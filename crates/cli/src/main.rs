@@ -13,7 +13,7 @@ unsafe extern "C" {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
 
     // Linux needs root, mainly for places that are containerized
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
