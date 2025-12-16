@@ -1,18 +1,18 @@
-import { VerticalBox, Palette } from "std-widgets.slint";
-import { SettingsDialog } from "settings-dialog.slint";
+import { VerticalBox } from "std-widgets.slint";
 import { Pages } from "pages/pages.slint";
+import { GruvboxPalette } from "gruvbox-palette.slint";
+
+import { RustCallbacks } from "globals.slint";
 
 export component AppWindow inherits Window {
-    preferred-width: 900px;
+    preferred-width: 700px;
     min-width: self.preferred-width * 0.75;
     preferred-height: self.preferred-width * 3 / 4;
     min-height: self.preferred-height * 0.75;
     default-font-size: 16 * (Math.min(self.width, self.height) / 600);
-
     title: "Vencord Installer";
     icon: @image-url("assets/icon.png");
+    background: GruvboxPalette.bg0;
 
-    background: Palette.background;
-
-    Pages { }
+    pages := Pages { }
 }

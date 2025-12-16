@@ -1,0 +1,118 @@
+import { VerticalBox, StyleMetrics, HorizontalBox } from "std-widgets.slint";
+import { GruvboxPalette } from "../gruvbox-palette.slint";
+import { AppInfo } from "../globals.slint";
+import { PageManager } from "../globals.slint";
+
+export component Header inherits Rectangle {
+    in property <string> name: "Installer";
+    in property <bool> show-version: true;
+    height: 60px;
+    
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 12px;
+            alignment: start;
+            Image {
+                source: @image-url("../assets/icon.png");
+                width: 60px;
+                height: 36px;
+            }
+            Text {
+                text: root.name;
+                font-size: 36px;
+                font-weight: 500;
+                color: GruvboxPalette.fg0;
+            }
+            if root.show-version: VerticalLayout {
+                padding-bottom: 2.5px;
+                Rectangle { }
+                Text {
+                    text: "v" + AppInfo.version;
+                    font-size: 22px;
+                    font-weight: 600;
+                    color: GruvboxPalette.fg4;
+                }   
+            }
+        }
+    }
+}
+
+export component Footer inherits Rectangle {
+    in property <string> name;
+    in property <int> target-page: 0;
+    height: 60px;
+    
+    HorizontalBox {
+        padding-left: 16px;
+        padding-right: 16px;
+        alignment: center;
+
+        HorizontalLayout {
+            alignment: start;
+
+            Text {
+                text: "Local Commit: " + AppInfo.local_vc_version;
+                color: GruvboxPalette.fg4;
+                font-size: 14px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: " • ";
+                color: GruvboxPalette.fg4;
+                font-size: 14px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: "Remote Commit: " + AppInfo.remote_vc_version;
+                color: GruvboxPalette.fg4;
+                font-size: 14px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: " • ";
+                color: GruvboxPalette.fg4;
+                font-size: 14px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            button-ta := TouchArea {
+                clicked => {
+                    PageManager.current-page-index = root.target-page;
+                }
+
+                button-text := Text {
+                    text: root.name;
+                    color: button-ta.has-hover ? GruvboxPalette.purple-dim : GruvboxPalette.purple;
+                    font-size: 14px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                    
+                    animate color { duration: 150ms; }
+                }
+            }
+        }
+    }
+}
+
+export component Page inherits Rectangle {
+    in property <color> page-background: GruvboxPalette.bg0;
+    callback next;
+    
+    background: page-background;
+
+    VerticalBox {
+        padding: 0;
+        spacing: 0;
+        @children
+    }
+}

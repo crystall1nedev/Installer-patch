@@ -1,30 +1,32 @@
-import { InstallSelect } from "install-select.slint";
-import { InstallAction } from "install-actions.slint";
+import { InstallPage } from "install-page.slint";
+import { SettingsPage } from "settings-page.slint";
 import { VerticalBox } from "std-widgets.slint";
-import { Footer } from "footer.slint";
+import { PageManager } from "../globals.slint";
 
-export component Pages inherits VerticalBox {
-    property <int> current_page_index: 0;
-    padding: 0;
-
+export component Pages inherits Rectangle {
     function next() {
-        current_page_index += 1;
+        PageManager.current_page_index += 1;
     }
 
     function back() {
-        if (current_page_index > 0) {
-            current_page_index -= 1;
+        if (PageManager.current_page_index > 0) {
+            PageManager.current_page_index -= 1;
         }
     }
 
-    if (current_page_index == 0): InstallSelect {
+    InstallPage {
+        width: 100%;
+        height: 100%;
+        
         next => next();
-        back => back();
-        can_go_back: false;
     }
-    if (current_page_index == 1): InstallAction {
-        next => next();
-        back => back();
-        can_go_back: true;
+    
+    SettingsPage {
+        width: 100%;
+        height: 100%;
+        x: PageManager.current-page-index == 1 ? 0 : root.width;
+        visible: PageManager.current-page-index == 1 || root.width > 0;
+        
+        animate x { duration: 300ms; easing: ease-in-out; }
     }
 }
