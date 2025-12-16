@@ -6,7 +6,10 @@ use vencord_installer_core::{
     RELEASE_URL_FALLBACK,
     get_dist_path,
     paths::{
-        branch::{DiscordBranch as CoreDiscordBranch, DiscordLocation as CoreDiscordLocation},
+        branch::{
+            DiscordBranch as CoreDiscordBranch,
+            DiscordLocation as CoreDiscordLocation
+        },
         locations::get_discord_locations
     }, 
     update::version_check::{check_hash_from_release, check_local_version}
