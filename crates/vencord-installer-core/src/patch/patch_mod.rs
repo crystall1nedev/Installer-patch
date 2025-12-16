@@ -180,9 +180,7 @@ impl Installer {
         let full_cmd = format!("flatpak {}", args.join(" "));
 
         if !is_system_flatpak && unsafe { geteuid() } == 0 {
-            Command::new("sudo")
-                .arg("-u")
-                .arg(env::var("SUDO_USER").unwrap())
+            Command::new("pkexec")
                 .arg("sh")
                 .arg("-c")
                 .arg(&full_cmd)

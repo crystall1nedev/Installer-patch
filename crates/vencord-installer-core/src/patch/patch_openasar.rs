@@ -51,7 +51,7 @@ impl OpenAsarInstaller {
         ).await?;
 
         super::rename(&asar_path, &resource_dir.join("app.asar.backup")).await?;
-        super::rename(&dl_tmp_asar_path, &asar_path).await?;
+        super::copy(&dl_tmp_asar_path, &asar_path).await?;
 
         log::info!("Patch applied successfully!");
 
