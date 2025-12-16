@@ -1,36 +1,48 @@
-use std::{env, error::Error};
-use std::rc::Rc;
+use std::{error::Error, rc::Rc};
+use tokio::sync::mpsc;
 
-use vencord_installer_core::Error as CoreError;
-use vencord_installer_core::patch::patch_openasar::OpenAsarInstaller;
-use vencord_installer_core::update::version_check::{check_hash_from_release, check_local_version};
 use vencord_installer_core::{
-    paths::branch::{DiscordLocation as CoreDiscordLocation, DiscordBranch as CoreDiscordBranch},
-    paths::locations::get_discord_locations,
-    patch::patch_mod::Installer,
+    RELEASE_URL, 
+    RELEASE_URL_FALLBACK,
+    get_dist_path,
+    paths::{
+        branch::{DiscordBranch as CoreDiscordBranch, DiscordLocation as CoreDiscordLocation},
+        locations::get_discord_locations
+    }, 
+    update::version_check::{check_hash_from_release, check_local_version}
 };
-use vencord_installer_shared::{OPENASAR_URL, RELEASE_URL, RELEASE_URL_FALLBACK, USER_AGENT, download_assets, get_dist_path};
 
-use tokio::runtime::Runtime;
+use crate::operations::{AppActions, AppMessage, AppOperation};
 
 slint::include_modules!();
 
 pub struct VencordInstallerApp {
     app: AppWindow,
     app_weak: slint::Weak<AppWindow>,
+    operation_tx: mpsc::UnboundedSender<AppOperation>,
+    message_rx: mpsc::UnboundedReceiver<AppMessage>,
 }
 
 impl VencordInstallerApp {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub async fn new() -> Result<Self, Box<dyn Error>> {
         let app = AppWindow::new()?;
         let app_weak = app.as_weak();
         
+        let (operation_tx, operation_rx) = mpsc::unbounded_channel();
+        let (message_tx, message_rx) = mpsc::unbounded_channel();
+        
+        let actions = AppActions::new(operation_rx, message_tx);
+        tokio::spawn(actions.run());
+        
         let mut gui_app = Self {
             app,
-            app_weak,
+            app_weak: app_weak.clone(),
+            operation_tx,
+            message_rx,
         };
         
-        gui_app.initialize()?;
+        gui_app.initialize().await?;
+        gui_app.start_message_handler();
         Ok(gui_app)
     }
     
@@ -38,84 +50,97 @@ impl VencordInstallerApp {
         self.app.run()
     }
 
-    fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
+    async fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
         self.app.global::<AppInfo>().set_version(env!("CARGO_PKG_VERSION").into());
         
-        let app_weak = self.app_weak.clone();
-        std::thread::spawn(move || {
-            let rt = Runtime::new().unwrap();
-            if let Some(remote_hash) = rt.block_on(check_hash_from_release(RELEASE_URL, Some(RELEASE_URL_FALLBACK), USER_AGENT)) {
-                let app_weak_clone = app_weak.clone();
-                let hash = remote_hash.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(app) = app_weak_clone.upgrade() {
-                    app.global::<AppInfo>().set_remote_vc_version(hash.into());
-                    }
-                });
-            }
-            
-            if let Some(local_hash) = rt.block_on(check_local_version(&get_dist_path(), r"// Vencord ([0-9a-zA-Z\.-]+)")) {
-                let app_weak_clone = app_weak.clone();
-                let hash = local_hash.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(app) = app_weak_clone.upgrade() {
-                    app.global::<AppInfo>().set_local_vc_version(hash.into());
-                    }
-                });
-            }
-        });
-        
+        self.check_versions().await;
         self.setup_callbacks();
         self.refresh_discord_locations();
         Ok(())
     }
 
+    async fn check_versions(&self) {
+        if let Some(remote_hash) = check_hash_from_release(RELEASE_URL, Some(RELEASE_URL_FALLBACK)).await {
+            self.update_ui(move |app| {
+                app.global::<AppInfo>().set_remote_vc_version(remote_hash.into());
+            });
+        }
+        
+        if let Some(local_hash) = check_local_version(&get_dist_path(None), None).await {
+            self.update_ui(move |app| {
+                app.global::<AppInfo>().set_local_vc_version(local_hash.into());
+            });
+        }
+    }
+
+    fn update_ui<F>(&self, f: F) 
+    where 
+        F: FnOnce(&AppWindow) + Send + 'static 
+    {
+        Self::invoke_ui_update(self.app_weak.clone(), f);
+    }
+
     fn setup_callbacks(&self) {
         let callbacks = self.app.global::<RustCallbacks>();
         
-        let app_weak_refresh = self.app_weak.clone();
+        let app_weak = self.app_weak.clone();
         callbacks.on_refresh_locations(move || {
-            if let Some(app) = app_weak_refresh.upgrade() {
-                Self::refresh_locations_static(&app);
+            if let Some(app) = app_weak.upgrade() {
+                Self::refresh_locations(&app);
             }
         });
         
-        let app_weak_install = self.app_weak.clone();
+        let tx_install = self.operation_tx.clone();
         callbacks.on_do_install(move |location| {
-            Self::handle_install(location, app_weak_install.clone());
+            let loc: CoreDiscordLocation = (&location).into();
+            if !loc.patched {
+                tx_install.send(AppOperation::Install(loc)).ok();
+            }
         });
 
-        let app_weak_o_install = self.app_weak.clone();
-        callbacks.on_do_o_install(move |location| {
-            Self::handle_o_install(location, app_weak_o_install.clone());
+        let tx_uninstall = self.operation_tx.clone();
+        callbacks.on_do_uninstall(move |location| {
+            let loc: CoreDiscordLocation = (&location).into();
+            if loc.patched {
+                tx_uninstall.send(AppOperation::Uninstall(loc)).ok();
+            }
         });
         
-        let app_weak_uninstall = self.app_weak.clone();
-        callbacks.on_do_uninstall(move |location| {
-            Self::handle_uninstall(location, app_weak_uninstall.clone());
+        let tx_o_install = self.operation_tx.clone();
+        callbacks.on_do_o_install(move |location| {
+            let loc: CoreDiscordLocation = (&location).into();
+            if !loc.openasar {
+                tx_o_install.send(AppOperation::InstallOpenAsar(loc)).ok();
+            }
         });
 
-        let app_weak_o_uninstall = self.app_weak.clone();
+        let tx_o_uninstall = self.operation_tx.clone();
         callbacks.on_do_o_uninstall(move |location| {
-            Self::handle_o_uninstall(location, app_weak_o_uninstall.clone());
+            let loc: CoreDiscordLocation = (&location).into();
+            if loc.openasar {
+                tx_o_uninstall.send(AppOperation::UninstallOpenAsar(loc)).ok();
+            }
+        });
+        
+        let tx_repair = self.operation_tx.clone();
+        callbacks.on_do_repair(move |location| {
+            tx_repair.send(AppOperation::Repair((&location).into())).ok();
         });
 
-        let app_weak_repair = self.app_weak.clone();
-        callbacks.on_do_repair(move |location| {
-            Self::handle_repair(location, app_weak_repair.clone());
-        });
+        #[cfg(target_os = "windows")]
+        {
+            let tx_open_appdata = self.operation_tx.clone();
+            callbacks.on_do_open_appdata(move || {
+                tx_open_appdata.send(AppOperation::OpenAppData()).ok();
+            });
+        }
     }
     
     fn refresh_discord_locations(&self) {
-        if let Some(core_locations) = get_discord_locations() {
-            let locations: Vec<DiscordLocation> = core_locations.iter().map(Into::into).collect();
-            let locations_model = Rc::new(slint::VecModel::from(locations));
-            self.app.global::<DiscordLocationAdapter>().set_locations(locations_model.into());
-        }
-        self.app.global::<PageManager>().set_current_page_index(0);
+        Self::refresh_locations(&self.app);
     }
 
-    fn refresh_locations_static(app: &AppWindow) {
+    fn refresh_locations(app: &AppWindow) {
         if let Some(core_locations) = get_discord_locations() {
             let locations: Vec<DiscordLocation> = core_locations.iter().map(Into::into).collect();
             let locations_model = Rc::new(slint::VecModel::from(locations));
@@ -123,174 +148,61 @@ impl VencordInstallerApp {
         }
         app.global::<PageManager>().set_current_page_index(0);
     }
-    
-    // MARK: Handlers
 
-    fn handle_install(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
-        let core_location: CoreDiscordLocation = (&location).into();
-        if core_location.patched { return; }
+    fn start_message_handler(&mut self) {
+        let app_weak = self.app_weak.clone();
+        let mut message_rx = std::mem::replace(
+            &mut self.message_rx,
+            mpsc::unbounded_channel().1
+        );
         
-        let _ = slint::spawn_local(async move {
-            match Self::install(core_location) {
-                Ok(()) => {
-                    if let Some(app) = app_weak.upgrade() {
-                        Self::refresh_locations_static(&app);
-                        app.global::<PageManager>().set_current_page_index(0);
-                    }
-                }
-                Err(err) => eprintln!("Installation failed: {err}"),
+        tokio::spawn(async move {
+            while let Some(message) = message_rx.recv().await {
+                Self::handle_message(message, &app_weak);
             }
         });
     }
-
-    fn handle_o_install(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
-        let core_location: CoreDiscordLocation = (&location).into();
-        if core_location.openasar { return; }
-
-        let _ = slint::spawn_local(async move {
-            match Self::o_install(core_location) {
-                Ok(()) => {
-                    if let Some(app) = app_weak.upgrade() {
-                        Self::refresh_locations_static(&app);
-                        app.global::<PageManager>().set_current_page_index(0);
-                    }
-                }
-                Err(err) => eprintln!("Installation failed: {err}"),
+    
+    fn handle_message(message: AppMessage, app_weak: &slint::Weak<AppWindow>) {
+        match message {
+            AppMessage::OperationSuccess => {
+                Self::invoke_ui_update(app_weak.clone(), |app| {
+                    Self::refresh_locations(app);
+                });
             }
-        });
-    }
-
-    fn handle_uninstall(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
-        let core_location: CoreDiscordLocation = (&location).into();
-
-        if !core_location.patched { return; }
-
-        let _ = slint::spawn_local(async move {
-            match Self::uninstall(core_location) {
-                Ok(()) => {
-                    if let Some(app) = app_weak.upgrade() {
-                        Self::refresh_locations_static(&app);
-                    }
-                }
-                Err(err) => eprintln!("Uninstallation failed: {err}"),
+            AppMessage::OperationError(error, show_open_appdata) => {
+                Self::show_error_dialog(app_weak.clone(), error, show_open_appdata);
             }
-        });
-    }
-
-    fn handle_o_uninstall(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
-        let core_location: CoreDiscordLocation = (&location).into();
-
-        if !core_location.openasar { return; }
-
-        let _ = slint::spawn_local(async move {
-            match Self::o_uninstall(core_location) {
-                Ok(()) => {
-                    if let Some(app) = app_weak.upgrade() {
-                        Self::refresh_locations_static(&app);
-                    }
-                }
-                Err(err) => eprintln!("Uninstallation failed: {err}"),
-            }
-        });
-    }
-
-    fn handle_repair(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
-        if location.patched {
-            Self::handle_uninstall(location.clone(), app_weak.clone());
         }
-
-        Self::handle_install(location, app_weak);
+    }
+    
+    fn invoke_ui_update<F>(app_weak: slint::Weak<AppWindow>, f: F)
+    where
+        F: FnOnce(&AppWindow) + Send + 'static,
+    {
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(app) = app_weak.upgrade() {
+                f(&app);
+            }
+        });
+    }
+    
+    fn show_error_dialog(app_weak: slint::Weak<AppWindow>, error: String, show_open_appdata: bool) {
+        Self::invoke_ui_update(app_weak, move |app| {
+            app.global::<ErrorDialog>().set_message(error.into());
+            app.global::<ErrorDialog>().set_visible(true);
+            app.global::<ErrorDialog>().set_open_appdata(show_open_appdata);
+        });
     }
 }
 
-impl VencordInstallerApp {
-    pub fn install(discord_location: CoreDiscordLocation) -> Result<(), CoreError> {
-        let rt = Runtime::new().unwrap();
-        
-        if discord_location.patched {
-            return Err(CoreError::ErrLocationPatched);
-        }
-        
-        if env::var("VENCORD_DEV_INSTALL").map_or(true, |v| v != "1") {
-            download_assets()?;
-        }
-
-        let installer = Installer::new(discord_location.clone());
-        
-        rt.block_on(installer.write_app_asar(
-            &get_dist_path().join("app.asar").to_string_lossy(), 
-            &get_dist_path().join("patcher.js").to_string_lossy()
-        ))?;
-
-        rt.block_on(installer.patch(
-            &get_dist_path().join("app.asar").to_string_lossy()
-        ))?;
-        
-        #[cfg(target_os = "linux")]
-        if selected_location.is_flatpak {
-            installer.grant_flatpak_permissions(selected_location.clone(), &get_dist_path().to_string_lossy())?;
-        }
-
-        Ok(())
-    }
-
-    pub fn o_install(discord_location: CoreDiscordLocation) -> Result<(), CoreError> {
-        let rt = Runtime::new().unwrap();
-
-        if discord_location.openasar {
-            return Err(CoreError::ErrLocationPatched);
-        }
-
-        let installer = OpenAsarInstaller::new(discord_location);
-        rt.block_on(installer.patch(
-            OPENASAR_URL, USER_AGENT
-        ))?;
-
-        Ok(())
-    }
-    
-    pub fn uninstall(discord_location: CoreDiscordLocation) -> Result<(), CoreError> {
-        let rt = Runtime::new().unwrap();
-        
-        if !discord_location.patched {
-            return Err(CoreError::ErrLocationNotPatched);
-        }
-        
-        let installer = Installer::new(discord_location.clone());
-        rt.block_on(installer.unpatch())?;
-        
-        Ok(())
-    }
-
-    pub fn o_uninstall(discord_location: CoreDiscordLocation) -> Result<(), CoreError> {
-        let rt = Runtime::new().unwrap();
-        
-        if !discord_location.openasar {
-            return Err(CoreError::ErrLocationNotPatched);
-        }
-
-        let installer = OpenAsarInstaller::new(discord_location);
-        rt.block_on(installer.unpatch())?;
-        
-        Ok(())
-    }
-}
-
-// MARK: - Conversions
-
+// MARK: - Type Conversions
 impl From<&CoreDiscordLocation> for DiscordLocation {
     fn from(core: &CoreDiscordLocation) -> Self {
-        let branch = match core.branch {
-            CoreDiscordBranch::Stable => DiscordBranch::Stable,
-            CoreDiscordBranch::PTB => DiscordBranch::PTB,
-            CoreDiscordBranch::Canary => DiscordBranch::Canary,
-            CoreDiscordBranch::Development => DiscordBranch::Development,
-        };
-        
         Self {
             name: core.name.clone().into(),
             path: core.path.clone().into(),
-            branch,
+            branch: convert_branch_to_slint(&core.branch),
             patched: core.patched,
             openasar: core.openasar,
             is_flatpak: core.is_flatpak,
@@ -301,21 +213,32 @@ impl From<&CoreDiscordLocation> for DiscordLocation {
 
 impl From<&DiscordLocation> for CoreDiscordLocation {
     fn from(slint_location: &DiscordLocation) -> Self {
-        let branch = match slint_location.branch {
-            DiscordBranch::Stable => CoreDiscordBranch::Stable,
-            DiscordBranch::PTB => CoreDiscordBranch::PTB,
-            DiscordBranch::Canary => CoreDiscordBranch::Canary,
-            DiscordBranch::Development => CoreDiscordBranch::Development,
-        };
-
         Self {
             name: slint_location.name.to_string(),
             path: slint_location.path.to_string(),
-            branch,
+            branch: convert_branch_to_core(&slint_location.branch),
             patched: slint_location.patched,
             openasar: slint_location.openasar,
             is_flatpak: slint_location.is_flatpak,
             is_system_electron: slint_location.is_system_electron,
         }
+    }
+}
+
+fn convert_branch_to_slint(core_branch: &CoreDiscordBranch) -> DiscordBranch {
+    match core_branch {
+        CoreDiscordBranch::Stable => DiscordBranch::Stable,
+        CoreDiscordBranch::PTB => DiscordBranch::PTB,
+        CoreDiscordBranch::Canary => DiscordBranch::Canary,
+        CoreDiscordBranch::Development => DiscordBranch::Development,
+    }
+}
+
+fn convert_branch_to_core(slint_branch: &DiscordBranch) -> CoreDiscordBranch {
+    match slint_branch {
+        DiscordBranch::Stable => CoreDiscordBranch::Stable,
+        DiscordBranch::PTB => CoreDiscordBranch::PTB,
+        DiscordBranch::Canary => CoreDiscordBranch::Canary,
+        DiscordBranch::Development => CoreDiscordBranch::Development,
     }
 }

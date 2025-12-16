@@ -3,8 +3,7 @@ resolver = "3"
 members = [
     "crates/cli",
     "crates/gui",
-    "crates/core", 
-    "crates/shared",
+    "crates/core",
 ]
 
 [workspace.package]
@@ -18,3 +17,5 @@ repository = "https://github.com/Vencord/Installer"
 
 [workspace.dependencies]
 tokio = { version = "1.42.0", features = ["full"] }
+log = "0.4.28"
+env_logger = "0.11.8"

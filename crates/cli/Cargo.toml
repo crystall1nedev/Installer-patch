@@ -7,8 +7,9 @@ repository.workspace = true
 
 [dependencies]
 tokio.workspace = true
+log.workspace = true
+env_logger.workspace = true
 vencord-installer-core = { path = "../core" }
-vencord-installer-shared = { path = "../shared" }
 clap = { version = "4.0", features = ["derive"] }
 dialoguer = "0.12.0"
 console = "0.16.1"

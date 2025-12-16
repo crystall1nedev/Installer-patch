@@ -3,6 +3,8 @@ use std::path::Path;
 use serde_json::Value;
 use reqwest::Client;
 
+use crate::USER_AGENT;
+
 /// Try to get JSON from a URL, return None if it fails.
 /// 
 /// # Arguments
@@ -14,10 +16,10 @@ use reqwest::Client;
 /// # Returns
 /// 
 /// Returns the JSON value if the request was successful, otherwise None.
-async fn try_get_json(client: &Client, url: &str, user_agent: &str) -> Option<Value> {
+async fn try_get_json(client: &Client, url: &str) -> Option<Value> {
     match client
         .get(url)
-        .header("User-Agent", user_agent)
+        .header("User-Agent", USER_AGENT)
         .send()
         .await {
             Ok(response) => response.json().await.ok(),
@@ -36,13 +38,13 @@ async fn try_get_json(client: &Client, url: &str, user_agent: &str) -> Option<Va
 /// # Returns
 /// 
 /// Returns the JSON value if the request was successful, otherwise None.
-pub async fn check_latest_version(url: &str, fallback_url: Option<&str>, user_agent: &str) -> Option<Value> {
+pub async fn check_latest_version(url: &str, fallback_url: Option<&str>) -> Option<Value> {
     let client = Client::new();
     
-    if let Some(result) = try_get_json(&client, url, user_agent).await {
+    if let Some(result) = try_get_json(&client, url).await {
         Some(result)
     } else if let Some(fallback) = fallback_url {
-        try_get_json(&client, fallback, user_agent).await
+        try_get_json(&client, fallback).await
     } else {
         None
     }
@@ -59,19 +61,31 @@ pub async fn check_latest_version(url: &str, fallback_url: Option<&str>, user_ag
 /// # Returns
 /// 
 /// Returns the hash if the request was successful, otherwise None.
-pub async fn check_hash_from_release(url: &str, fallback_url: Option<&str>, user_agent: &str) -> Option<String> {
-    if let Some(json) = check_latest_version(url, fallback_url, user_agent).await {
+pub async fn check_hash_from_release(url: &str, fallback_url: Option<&str>) -> Option<String> {
+    if let Some(json) = check_latest_version(url, fallback_url).await {
         let name = json["name"].as_str().unwrap();
         let hash = name.split_whitespace().last().unwrap();
+        log::info!("Found hash from release: {}", hash);
         Some(hash.to_owned())
     } else {
+        log::error!("Failed to get hash from release");
         None
     }
 }
 
-// r"// Vencord (\w+)" example
-// this needs application support path to dist directory, or a asar file
-pub async fn check_local_version(dir: &Path, regex: &str) -> Option<String> {
+/// Check the local version from a directory by reading the preload.js file.
+/// 
+/// # Arguments
+/// 
+/// * `dir` - The directory to read the preload.js file from.
+/// * `regex` - The regex pattern to use to extract the version from the preload.js file. If None, defaults to `// Vencord ([0-9a-zA-Z\.-]+)`.
+/// 
+/// # Returns
+/// 
+/// Returns the version if found, otherwise None.
+pub async fn check_local_version(dir: &Path, regex: Option<&str>) -> Option<String> {
+    let regex = regex.unwrap_or(r"// Vencord ([0-9a-zA-Z\.-]+)");
+
     let main_js = if dir.is_dir() {
         dir.join("preload.js")
     } else {
@@ -82,6 +96,8 @@ pub async fn check_local_version(dir: &Path, regex: &str) -> Option<String> {
     let re = regex::Regex::new(regex).ok()?;
     let captures = re.captures(&main_js)?;
     let version = captures.get(1)?.as_str();
+
+    log::info!("Found local hash from preload.js: {}", version);
 
     Some(version.to_owned())
 }

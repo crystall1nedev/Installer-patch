@@ -8,10 +8,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slint = "1.12.1"
-vencord-installer-core = { path = "../core" }
-vencord-installer-shared = { path = "../shared" }
 tokio.workspace = true
+env_logger.workspace = true
+vencord-installer-core = { path = "../core" }
+slint = "1.12.1"
 
 [build-dependencies]
 slint-build = "1.12.1"

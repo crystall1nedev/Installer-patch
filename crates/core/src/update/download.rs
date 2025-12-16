@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::Error;
+use crate::{Error, USER_AGENT};
 
 /// Prepares a dist directory by downloading the specified files, including a creating a `package.json` file.
 /// 
@@ -14,14 +14,14 @@ use crate::Error;
 /// # Returns
 /// 
 /// Returns `Ok(())` if the directory was prepared successfully, otherwise an InstallerResult error.
-pub async fn prepare_dist_directory<P: AsRef<Path>, S: Into<String>, I: IntoIterator<Item = String>>(
+pub async fn prepare_dist_directory<P: AsRef<Path>, S: Into<String>, I: IntoIterator<Item = impl AsRef<str>>>(
     path: P,
     url_path: S,
-    user_agent: S,
     dist_files: I,
 ) -> Result<(), Error> {
+    log::info!("Preparing dist directory at before patch {:?}", path.as_ref());
+
     let url_path = url_path.into();
-    let user_agent = user_agent.into();
 
     // Use the provided path directly instead of constructing from dir_name
     let downloads_dist_path = path.as_ref();
@@ -31,9 +31,8 @@ pub async fn prepare_dist_directory<P: AsRef<Path>, S: Into<String>, I: IntoIter
 
     for file in dist_files {
         download_file(
-            &format!("{}/{}", url_path, file),
-            downloads_dist_path.join(&file),
-            &user_agent
+            &format!("{}/{}", url_path, file.as_ref()),
+            downloads_dist_path.join(file.as_ref())
         ).await?;
     }
 
@@ -51,10 +50,10 @@ pub async fn prepare_dist_directory<P: AsRef<Path>, S: Into<String>, I: IntoIter
 /// # Returns
 /// 
 /// Returns `Ok(())` if the file was downloaded successfully, otherwise an InstallerResult error.
-pub async fn download_file(url: &str, path: PathBuf, user_agent: &str) -> Result<(), Error> {
+pub async fn download_file(url: &str, path: PathBuf) -> Result<(), Error> {
     let client = reqwest::Client::new();
 
-    let response = client.get(url).header("User-Agent", user_agent).send().await?;
+    let response = client.get(url).header("User-Agent", USER_AGENT).send().await?;
 
     let mut dest = tokio::fs::File::create(&path).await?;
 

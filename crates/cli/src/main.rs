@@ -1,37 +1,34 @@
 #![allow(rustdoc::missing_crate_level_docs)]
 
-mod cli;
+mod commands;
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-use {
-    std::process::exit,
-    vencord_installer_shared::error,
-};
-
-use cli::arguments;
+use clap::Parser;
+use commands::Cli;
+use vencord_installer_core::Error;
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 unsafe extern "C" {
     fn geteuid() -> u32;
 }
 
-fn main() {
-    let matches = arguments::args_build().get_matches();
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     // Linux needs root, mainly for places that are containerized
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     if unsafe { geteuid() } != 0 {
-        error!("Please run this program using `sudo -E`!");
-        exit(1);
+        return Err(Error::ErrInvalidArguments("Please run this program using `sudo -E`!"));
     }
 
     // macOS don't need root
     #[cfg(any(target_os = "macos"))]
     if unsafe { geteuid() } == 0 {
-        error!("Please run this program without root, and make sure your terminal has developer tool permissions and Full Disk Access!");
-        exit(1);
+        return Err(Error::ErrInvalidArguments("Please run this program without root, and make sure your terminal has Developer Tool permissions and Full Disk Access!"));
     }
 
-    arguments::arg_conflicts(&matches);
-    arguments::arg_commands(&matches);
+    let cli = Cli::parse();
+    commands::patch::execute(cli.args).await?;
+
+    Ok(())
 }

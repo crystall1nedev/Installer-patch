@@ -1,8 +1,8 @@
-import { VerticalBox } from "std-widgets.slint";
+import { VerticalBox, Button } from "std-widgets.slint";
 import { Pages } from "pages/pages.slint";
 import { GruvboxPalette } from "gruvbox-palette.slint";
 
-import { RustCallbacks } from "globals.slint";
+import { RustCallbacks, ErrorDialog } from "globals.slint";
 
 export component AppWindow inherits Window {
     preferred-width: 700px;
@@ -15,4 +15,58 @@ export component AppWindow inherits Window {
     background: GruvboxPalette.bg0;
 
     pages := Pages { }
+
+    if ErrorDialog.visible: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000088;
+        
+        TouchArea {
+            clicked => {
+                ErrorDialog.visible = false;
+            }
+        }
+
+        Rectangle {
+            width: 400px;
+            height: 200px;
+            background: GruvboxPalette.bg0;
+            border-radius: 8px;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000044;
+            drop-shadow-offset-y: 4px;
+
+            VerticalBox {
+                padding: 20px;
+                spacing: 15px;
+
+                Text {
+                    text: "Oh no!";
+                    font-size: 20px;
+                    color: GruvboxPalette.red;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: ErrorDialog.message;
+                    color: GruvboxPalette.fg1;
+                    wrap: word-wrap;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                Button {
+                    text: ErrorDialog.open_appdata ? "Take me there" : "OK";
+                    primary: true;
+                    clicked => {
+                        if ErrorDialog.open_appdata {
+                            RustCallbacks.do_open_appdata();
+                        }
+                        ErrorDialog.visible = false;
+                    }
+                }
+            }
+        }
+    }
 }
