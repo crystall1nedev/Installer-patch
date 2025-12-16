@@ -38,6 +38,8 @@ pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
         Path::new(".local/share/flatpak/app"),
     ];
 
+    // TODO: sudo -E fucks with HOME env var
+
     let locations: Vec<DiscordLocation> = paths
         .iter()
         .flat_map(|base| {

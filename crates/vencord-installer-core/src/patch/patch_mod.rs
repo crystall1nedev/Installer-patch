@@ -58,15 +58,15 @@ impl Installer {
 
         log::info!("Patching {} using custom asar: {:?}", self.discord_location.path.as_str(), data_path.join("app.asar"));
 
-        tokio::fs::rename(&asar_path, &_asar_path).await?;
-        tokio::fs::rename(data_path.join("app.asar"), &asar_path).await?;
+        super::rename(&asar_path, &_asar_path).await?;
+        super::copy(&data_path.join("app.asar"), &asar_path).await?;
 
         #[cfg(target_os = "linux")]
         if self.discord_location.is_system_electron {
             let asar_path = resource_dir.join("app.asar.unpacked");
             let _asar_path = resource_dir.join("_app.asar.unpacked");
 
-            tokio::fs::rename(&asar_path, &_asar_path).await?;
+            super::rename(&asar_path, &_asar_path).await?;
         }
 
         #[cfg(target_os = "linux")]
@@ -92,15 +92,17 @@ impl Installer {
 
         log::info!("Unpatching {}...", self.discord_location.path.as_str());
 
-        tokio::fs::remove_file(&asar_path).await?;
-        tokio::fs::rename(&_asar_path, &asar_path).await?;
+        if asar_path.exists() {
+            super::remove_file(&asar_path).await?;
+        }
+        super::rename(&_asar_path, &asar_path).await?;
 
         #[cfg(target_os = "linux")]
         if self.discord_location.is_system_electron {
             let asar_path = resource_dir.join("app.asar.unpacked");
             let _asar_path = resource_dir.join("_app.asar.unpacked");
 
-            tokio::fs::rename(&_asar_path, &asar_path).await?;
+            super::rename(&_asar_path, &asar_path).await?;
         }
 
         log::info!("Unpatch applied successfully!");

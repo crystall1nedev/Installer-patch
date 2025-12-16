@@ -44,6 +44,8 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum Error {
+    #[error("Permission denied. Please run the installer with appropriate permissions.")]
+    ErrPermissionDenied,
     #[error("You have a broken Discord install. Please reinstall Discord!")]
     ErrWindowsMovedDirectory,
     #[error("This Discord install is already patched, nothing to do.")]

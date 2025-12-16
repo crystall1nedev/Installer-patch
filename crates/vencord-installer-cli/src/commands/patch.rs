@@ -79,14 +79,15 @@ async fn install(client_mod: bool, openasar: bool, custom_path: Option<String>) 
             download().await?;
         }
 
-        let i = Installer::new(
+        Installer::new(
             selected_location.clone(), 
             Some(get_dist_path(None))
-        );
-        i.patch().await?;
+        ).patch().await?;
     } else if openasar && !selected_location.openasar {
-        let i = OpenAsarInstaller::new(selected_location.clone());
-        i.patch(OPENASAR_URL).await?;
+        OpenAsarInstaller::new(
+            selected_location.clone(), 
+            Some(get_dist_path(None))
+        ).patch(OPENASAR_URL).await?;
     }
     
     Ok(())
@@ -105,12 +106,10 @@ async fn uninstall(client_mod: bool, openasar: bool, custom_path: Option<String>
     }
 
     if client_mod && selected_location.patched {
-        let installer = Installer::new(selected_location.clone(), None);
-        installer.unpatch().await?;
+        Installer::new(selected_location.clone(), None).unpatch().await?;
         selected_location.patched = false;
     } else if openasar && selected_location.openasar  {
-        let installer = OpenAsarInstaller::new(selected_location.clone());
-        installer.unpatch().await?;
+        OpenAsarInstaller::new(selected_location.clone(), None).unpatch().await?;
     }
 
     Ok(())

@@ -77,10 +77,10 @@ impl AppActions {
             download().await?;
         }
 
-        let installer = Installer::new(location.clone(), Some(get_dist_path(None)));
-        installer.patch().await?;
-
-        Ok(())
+        Installer::new(
+            location.clone(), 
+            Some(get_dist_path(None))
+        ).patch().await
     }
     
     async fn uninstall(location: DiscordLocation) -> Result<(), Error> {
@@ -103,7 +103,10 @@ impl AppActions {
             return Err(Error::ErrLocationPatched);
         }
 
-        OpenAsarInstaller::new(location).patch(OPENASAR_URL).await
+        OpenAsarInstaller::new(
+            location, 
+            Some(get_dist_path(None))
+        ).patch(OPENASAR_URL).await
     }
 
     async fn uninstall_openasar(location: DiscordLocation) -> Result<(), Error> {
@@ -111,7 +114,7 @@ impl AppActions {
             return Err(Error::ErrLocationNotPatched);
         }
 
-        OpenAsarInstaller::new(location).unpatch().await
+        OpenAsarInstaller::new(location, None).unpatch().await
     }
 
     async fn open_appdata() -> Result<(), Error> {

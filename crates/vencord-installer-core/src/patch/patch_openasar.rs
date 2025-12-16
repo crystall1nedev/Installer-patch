@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::Error;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
@@ -7,15 +9,18 @@ use crate::update::download::download_file;
 
 pub struct OpenAsarInstaller {
     discord_location: DiscordLocation,
+    data_path: Option<PathBuf>,
 }
     
 impl OpenAsarInstaller {
 
     pub fn new(
-        discord_location: DiscordLocation
+        discord_location: DiscordLocation,
+        data_path: Option<PathBuf>
     ) -> Self {
         OpenAsarInstaller { 
-            discord_location 
+            discord_location,
+            data_path
         }
     }
 
@@ -32,9 +37,11 @@ impl OpenAsarInstaller {
             return Err(Error::ErrWindowsMovedDirectory);
         }
 
+        let data_path = &self.data_path.clone().ok_or(Error::ErrNoDataPath)?;
+
         let resource_dir = resource_dir_path(&self.discord_location, self.discord_location.is_system_electron);
         let asar_path = resource_dir.join(use_appropriate_asar(self.discord_location.patched));
-        let dl_tmp_asar_path = resource_dir.join("app.asar.tmp");
+        let dl_tmp_asar_path = data_path.join("app.asar");
 
         log::info!("Patching {} using remote asar: {}", self.discord_location.path.as_str(), patched_asar_file_url);
 
@@ -43,8 +50,8 @@ impl OpenAsarInstaller {
             dl_tmp_asar_path.clone()
         ).await?;
 
-        tokio::fs::rename(&asar_path, resource_dir.join("app.asar.backup")).await?;
-        tokio::fs::rename(&dl_tmp_asar_path, &asar_path).await?;
+        super::rename(&asar_path, &resource_dir.join("app.asar.backup")).await?;
+        super::rename(&dl_tmp_asar_path, &asar_path).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -63,7 +70,9 @@ impl OpenAsarInstaller {
 
         log::info!("Unpatching {}", self.discord_location.path.as_str());
 
-        tokio::fs::remove_file(&asar_path).await?;
+        if asar_path.exists() {
+            super::remove_file(&asar_path).await?;
+        }
 
         let backup_paths = [
             resource_dir.join("app.asar.backup"),
@@ -71,8 +80,8 @@ impl OpenAsarInstaller {
         ];
 
         match backup_paths.iter().find(|&path| path.exists()) {
-            Some(backup) => tokio::fs::rename(backup, asar_path).await?,
-            None => return Err(Error::ErrLocationInvalid),
+            Some(backup) => super::rename(backup, &asar_path).await?,
+            _ => return Err(Error::ErrLocationInvalid),
         }
 
         log::info!("Unpatch applied successfully!");
