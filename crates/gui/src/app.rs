@@ -195,6 +195,10 @@ impl VencordInstallerApp {
     }
 
     fn handle_repair(location: DiscordLocation, app_weak: slint::Weak<AppWindow>) {
+        if location.patched {
+            Self::handle_uninstall(location.clone(), app_weak.clone());
+        }
+
         Self::handle_install(location, app_weak);
     }
 }
