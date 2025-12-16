@@ -17,24 +17,17 @@ use vencord_installer_core::update::download::prepare_dist_directory;
 
 const RELEASE_TAG_DOWNLOAD: &str = "https://github.com/Vendicated/Vencord/releases/download/devbuild";
 
-// Github requires a user-agent when downloading from their 
-// services, so we make this required for when downloading 
-// files, for this we use the package name, however you can
-// use something else
-const USER_AGENT: &str = "(vencord-installer-core) (https://github.com/Vencord/Installer)";
-
 fn main() {
-    let _ = prepare_dist_directory(
-        &get_data_path("Vencord"), // this will get us the appropriate dist path 
+    prepare_dist_directory(
+        &get_data_path(None), // this will get us the appropriate dist path 
         RELEASE_TAG_DOWNLOAD,
-        USER_AGENT,
         [
             "patcher.js".to_string(),
             "preload.js".to_string(),
             "renderer.js".to_string(),
             "renderer.css".to_string(),
         ],
-    );
+    ).ok();
 }
 ```
 
@@ -106,25 +99,15 @@ You now have the Discord instance you want to patch or unpatch to, heres some co
 ```rs
 use vencord_installer_core::{
     patch::patch_mod::Installer, 
-    paths::locations::get_data_path
+    get_dist_path,
 };
 
 // ...
 
 fn main() {
     // ...
-    let installer = Installer::new();
-
-     // This in particular creates an app.asar with our downloaded patcher.js file
-    let _ = installer.write_app_asar(
-        &get_data_path("Vencord").join("app.asar").to_string_lossy(), 
-        &get_data_path("Vencord").join("patcher.js").to_string_lossy()
-    );
-
-    let _ = installer.patch(
-        location, 
-        &get_data_path("Vencord").join("app.asar").to_string_lossy()
-    );
+    let installer = Installer::new(location, &get_dist_path());
+    installer.patch().ok();
 }
 
 ```
@@ -148,11 +131,9 @@ use vencord_installer_core::patch::patch_mod::Installer;
 
 fn main() {
     // ...
-    let installer = Installer::new();
+    let installer = Installer::new(location, None);
 
-    let _ = installer.unpatch(
-        location, 
-    );
+    let _ = installer.unpatch().ok();
 }
 
 ```
