@@ -80,11 +80,6 @@ impl AppActions {
         let installer = Installer::new(location.clone(), Some(get_dist_path(None)));
         installer.patch().await?;
 
-        #[cfg(target_os = "linux")]
-        if location.is_flatpak {
-            installer.grant_flatpak_permissions(location, &get_dist_path(None).to_string_lossy())?;
-        }
-
         Ok(())
     }
     

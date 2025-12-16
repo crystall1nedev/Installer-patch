@@ -9,16 +9,14 @@ use std::path::PathBuf;
 use std::{env, process::Command};
 
 use crate::Error;
-#[cfg(target_os = "linux")]
-use crate::paths::locations::get_data_path;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
 use crate::paths::shared::resource_dir_path;
 use crate::paths::branch::DiscordLocation;
 
 #[cfg(target_os = "linux")]
-extern "C" {
-    fn geteuid() -> u32;
+unsafe extern "C" {
+    unsafe fn geteuid() -> u32;
 }
 
 pub struct Installer {
@@ -64,11 +62,16 @@ impl Installer {
         tokio::fs::rename(data_path.join("app.asar"), &asar_path).await?;
 
         #[cfg(target_os = "linux")]
-        if discord_to_patch.is_system_electron {
+        if self.discord_location.is_system_electron {
             let asar_path = resource_dir.join("app.asar.unpacked");
             let _asar_path = resource_dir.join("_app.asar.unpacked");
 
             tokio::fs::rename(&asar_path, &_asar_path).await?;
+        }
+
+        #[cfg(target_os = "linux")]
+        if self.discord_location.is_flatpak {
+            self.grant_flatpak_permissions()?;
         }
 
         log::info!("Patch applied successfully!");
@@ -151,8 +154,10 @@ impl Installer {
     }
     
     #[cfg(target_os = "linux")]
-    pub fn grant_flatpak_permissions(&self, files_dir: &str) -> Result<(), Error> {
-        log::info!("Location is flatpak, granting perms to {}", files_dir);
+    pub fn grant_flatpak_permissions(&self) -> Result<(), Error> {
+        let data_path = self.data_path.clone().ok_or(Error::ErrNoDataPath)?;
+
+        log::info!("Location is flatpak, granting perms to {}", data_path.to_string_lossy());
 
         let name = self.discord_location.path
             .split('/')
@@ -168,7 +173,7 @@ impl Installer {
         }
         args.push("override");
         args.push(name);
-        let filesystem_arg = format!("--filesystem={}", &files_dir);
+        let filesystem_arg = format!("--filesystem={}", &data_path.to_string_lossy());
         args.push(&filesystem_arg);
         let full_cmd = format!("flatpak {}", args.join(" "));
 

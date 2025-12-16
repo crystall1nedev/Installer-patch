@@ -68,7 +68,7 @@ async fn install(client_mod: bool, openasar: bool, custom_path: Option<String>) 
     if let Some(path) = custom_path {
         selected_location = match get_custom_discord_location(&path) {
             Some(location) => location,
-            None => return Err(Error::ErrLocationInvalid),
+            _ => return Err(Error::ErrLocationInvalid),
         };
     } else {
         selected_location = select_location().await?;
@@ -84,11 +84,6 @@ async fn install(client_mod: bool, openasar: bool, custom_path: Option<String>) 
             Some(get_dist_path(None))
         );
         i.patch().await?;
-
-        #[cfg(target_os = "linux")]
-        if selected_location.is_flatpak {
-            i.grant_flatpak_permissions(selected_location.clone(), &get_dist_path().to_string_lossy())?;
-        }
     } else if openasar && !selected_location.openasar {
         let i = OpenAsarInstaller::new(selected_location.clone());
         i.patch(OPENASAR_URL).await?;
@@ -103,7 +98,7 @@ async fn uninstall(client_mod: bool, openasar: bool, custom_path: Option<String>
     if let Some(path) = custom_path {
         selected_location = match get_custom_discord_location(&path) {
             Some(location) => location,
-            None => return Err(Error::ErrLocationInvalid),
+            _ => return Err(Error::ErrLocationInvalid),
         };
     } else {
         selected_location = select_location().await?;
