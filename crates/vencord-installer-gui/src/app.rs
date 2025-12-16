@@ -177,11 +177,11 @@ impl VencordInstallerApp {
     where
         F: FnOnce(&AppWindow) + Send + 'static,
     {
-        let _ = slint::invoke_from_event_loop(move || {
+        slint::invoke_from_event_loop(move || {
             if let Some(app) = app_weak.upgrade() {
                 f(&app);
             }
-        });
+        }).ok();
     }
     
     fn show_error_dialog(app_weak: slint::Weak<AppWindow>, error: String, show_open_appdata: bool) {
