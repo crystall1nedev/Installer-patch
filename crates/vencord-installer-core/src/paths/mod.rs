@@ -11,5 +11,5 @@ mod linux;
 #[cfg(target_os = "linux")]
 pub use linux::locations;
 
-pub mod shared;
 pub mod branch;
+pub mod shared;

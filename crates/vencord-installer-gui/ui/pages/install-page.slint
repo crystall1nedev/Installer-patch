@@ -23,7 +23,6 @@ component ActionButton inherits Rectangle {
     border-radius: 4px;
     background: touch.has-hover ? hover-color : bg-color;
     animate background { duration: 150ms; }
-    
     HorizontalLayout {
         padding-left: 12px;
         padding-right: 12px;
@@ -82,11 +81,9 @@ component DiscordLocationItem inherits Rectangle {
             HorizontalBox {
                 padding: 12px;
                 spacing: 12px;
-                
                 HorizontalLayout {
                     Rectangle {
                         width: 48px;
-                        
                         Image {
                             width: 100%;
                             height: 100%;
@@ -99,7 +96,6 @@ component DiscordLocationItem inherits Rectangle {
                     VerticalBox {
                         alignment: center;
                         spacing: 3px;
-                        
                         Text {
                             text: DiscordLocationAdapter.branch_name(location.branch);
                             font-size: 18px;
@@ -114,14 +110,12 @@ component DiscordLocationItem inherits Rectangle {
                         }
                     }
                 }
-                
+
                 VerticalLayout {
                     alignment: center;
-                    
                     HorizontalLayout {
                         spacing: 6px;
                         alignment: end;
-                        
                         if location.patched: Rectangle {
                             width: 85px;
                             height: 22px;
@@ -172,7 +166,6 @@ component DiscordLocationItem inherits Rectangle {
                 duration: 250ms;
                 easing: ease-in-out;
             }
-            
             VerticalLayout {
                 padding: 12px;
                 spacing: 8px;
@@ -200,7 +193,7 @@ component DiscordLocationItem inherits Rectangle {
                         text: "Install OpenAsar";
                         bg-color: GruvboxPalette.blue;
                         hover-color: GruvboxPalette.blue-dim;
-                        clicked => { 
+                        clicked => {
                             RustCallbacks.do_o_install(location);
                         }
                     }
@@ -208,7 +201,7 @@ component DiscordLocationItem inherits Rectangle {
                         text: "Uninstall OpenAsar";
                         bg-color: GruvboxPalette.red;
                         hover-color: GruvboxPalette.red-dim;
-                        clicked => { 
+                        clicked => {
                             RustCallbacks.do_o_uninstall(location);
                         }
                     }
@@ -228,7 +221,7 @@ component DiscordLocationItem inherits Rectangle {
 }
 
 export component InstallPage inherits Page {
-    Header { 
+    Header {
         name: "Installer";
     }
 
@@ -251,8 +244,8 @@ export component InstallPage inherits Page {
             }
         }
     }
-    
-    Footer { 
+
+    Footer {
         name: "Settings";
         target-page: 1;
     }

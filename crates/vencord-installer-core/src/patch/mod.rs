@@ -65,10 +65,7 @@ pub async fn remove_file(path: &std::path::Path) -> Result<(), Error> {
             #[cfg(target_os = "linux")]
             {
                 use std::process::Command;
-                let status = Command::new("pkexec")
-                    .arg("rm")
-                    .arg(path)
-                    .status()?;
+                let status = Command::new("pkexec").arg("rm").arg(path).status()?;
                 if status.success() {
                     Ok(())
                 } else {

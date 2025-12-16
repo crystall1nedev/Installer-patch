@@ -7,7 +7,6 @@ export component Header inherits Rectangle {
     in property <string> name: "Installer";
     in property <bool> show-version: true;
     height: 60px;
-    
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
@@ -20,21 +19,24 @@ export component Header inherits Rectangle {
                 width: 60px;
                 height: 36px;
             }
+
             Text {
                 text: root.name;
                 font-size: 36px;
                 font-weight: 500;
                 color: GruvboxPalette.fg0;
             }
+
             if root.show-version: VerticalLayout {
                 padding-bottom: 2.5px;
                 Rectangle { }
+
                 Text {
                     text: "v" + AppInfo.version;
                     font-size: 22px;
                     font-weight: 600;
                     color: GruvboxPalette.fg4;
-                }   
+                }
             }
         }
     }
@@ -44,7 +46,6 @@ export component Footer inherits Rectangle {
     in property <string> name;
     in property <int> target-page: 0;
     height: 60px;
-    
     HorizontalBox {
         padding-left: 16px;
         padding-right: 16px;
@@ -96,7 +97,6 @@ export component Footer inherits Rectangle {
                     font-size: 14px;
                     font-weight: 600;
                     vertical-alignment: center;
-                    
                     animate color { duration: 150ms; }
                 }
             }
@@ -107,7 +107,6 @@ export component Footer inherits Rectangle {
 export component Page inherits Rectangle {
     in property <color> page-background: GruvboxPalette.bg0;
     callback next;
-    
     background: page-background;
 
     VerticalBox {

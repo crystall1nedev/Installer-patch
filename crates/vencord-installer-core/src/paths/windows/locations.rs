@@ -31,10 +31,7 @@ pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
 }
 
 fn parse_discord_location(full_path: &Path) -> Option<DiscordLocation> {
-    let discord_location = full_path
-        .file_name()
-        .and_then(|n| n.to_str())?
-        .to_string();
+    let discord_location = full_path.file_name().and_then(|n| n.to_str())?.to_string();
 
     // Windows my behated
     let app_path = std::fs::read_dir(full_path)
@@ -64,20 +61,18 @@ fn parse_discord_location(full_path: &Path) -> Option<DiscordLocation> {
 }
 
 /// Returns and creates the data path for the given name.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `data_dir` - The name of the data directory.
-/// 
+///
 /// # Returns
-/// 
+///
 /// Returns the path to the data directory.
 pub fn get_data_path(data_dir: &str) -> PathBuf {
     let appdata = std::env::var("APPDATA").unwrap_or_default();
 
-    let dir = Path::new(&appdata)
-        .join(data_dir)
-        .join("dist");
+    let dir = Path::new(&appdata).join(data_dir).join("dist");
 
     std::fs::create_dir_all(&dir).ok();
 
@@ -86,25 +81,21 @@ pub fn get_data_path(data_dir: &str) -> PathBuf {
 
 /// Returns the path to the resources directory for Discord.
 pub fn get_discord_resource_location() -> PathBuf {
-    PathBuf::new()
-        .join("resources")
+    PathBuf::new().join("resources")
 }
 
 /// Checks if the Discord installation is in a scuffed location.
-/// 
+///
 /// See: https://github.com/Vencord/Installer/issues/9
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `name` - The name of the Discord installation.
 pub fn is_scuffed_install(name: &String) -> bool {
     let username_dir = std::env::var("USERNAME").ok().unwrap_or_default();
     let program_data_dir = std::env::var("PROGRAMDATA").ok().unwrap_or_default();
 
-    let scuffed_path = Path::new(&program_data_dir)
-        .join(username_dir)
-        .join(&name);
+    let scuffed_path = Path::new(&program_data_dir).join(username_dir).join(&name);
 
     scuffed_path.exists()
 }
-

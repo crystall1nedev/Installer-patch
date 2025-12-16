@@ -8,7 +8,7 @@ use clap::Parser;
     author,
     version,
     about = "Command-line tool for installing Vencord and OpenAsar to Discord.",
-    disable_help_subcommand = true,
+    disable_help_subcommand = true
 )]
 pub struct Cli {
     #[command(flatten)]

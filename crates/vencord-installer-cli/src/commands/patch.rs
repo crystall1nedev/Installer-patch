@@ -3,16 +3,12 @@ use console::style;
 use dialoguer::Select;
 
 use vencord_installer_core::{
-    Error, OPENASAR_URL, download, get_dist_path, 
-    patch::{
-        patch_mod::Installer,
-        patch_openasar::OpenAsarInstaller
-    },
+    Error, OPENASAR_URL, download, get_dist_path,
+    patch::{patch_mod::Installer, patch_openasar::OpenAsarInstaller},
     paths::{
-        branch::DiscordLocation, 
-        locations::get_discord_locations, 
-        shared::get_custom_discord_location
-    }
+        branch::DiscordLocation, locations::get_discord_locations,
+        shared::get_custom_discord_location,
+    },
 };
 
 #[derive(Debug, Args)]
@@ -36,25 +32,21 @@ pub struct PatchArgs {
 
 pub async fn execute(args: PatchArgs) -> Result<(), Error> {
     if args.install && args.uninstall {
-        return Err(Error::ErrInvalidArguments("You cannot use install and uninstall commands together."));
+        return Err(Error::ErrInvalidArguments(
+            "You cannot use install and uninstall commands together.",
+        ));
     }
 
     if args.custom.is_some() && !(args.install_openasar || args.uninstall_openasar) {
-        return Err(Error::ErrInvalidArguments("You must specify an install or uninstall when using --custom!"));
+        return Err(Error::ErrInvalidArguments(
+            "You must specify an install or uninstall when using --custom!",
+        ));
     }
 
     if args.install || args.install_openasar {
-        install(
-            args.install,
-            args.install_openasar,
-            args.custom,
-        ).await?;
+        install(args.install, args.install_openasar, args.custom).await?;
     } else if args.uninstall || args.uninstall_openasar {
-        uninstall(
-            args.uninstall,
-            args.uninstall_openasar,
-            args.custom,
-        ).await?;
+        uninstall(args.uninstall, args.uninstall_openasar, args.custom).await?;
     } else {
         select_options().await?;
     }
@@ -62,7 +54,11 @@ pub async fn execute(args: PatchArgs) -> Result<(), Error> {
     Ok(())
 }
 
-async fn install(client_mod: bool, openasar: bool, custom_path: Option<String>) -> Result<(), Error> {
+async fn install(
+    client_mod: bool,
+    openasar: bool,
+    custom_path: Option<String>,
+) -> Result<(), Error> {
     let selected_location: DiscordLocation;
 
     if let Some(path) = custom_path {
@@ -79,21 +75,23 @@ async fn install(client_mod: bool, openasar: bool, custom_path: Option<String>) 
             download().await?;
         }
 
-        Installer::new(
-            selected_location.clone(), 
-            Some(get_dist_path(None))
-        ).patch().await?;
+        Installer::new(selected_location.clone(), Some(get_dist_path(None)))
+            .patch()
+            .await?;
     } else if openasar && !selected_location.openasar {
-        OpenAsarInstaller::new(
-            selected_location.clone(), 
-            Some(get_dist_path(None))
-        ).patch(OPENASAR_URL).await?;
+        OpenAsarInstaller::new(selected_location.clone(), Some(get_dist_path(None)))
+            .patch(OPENASAR_URL)
+            .await?;
     }
-    
+
     Ok(())
 }
 
-async fn uninstall(client_mod: bool, openasar: bool, custom_path: Option<String>) -> Result<(), Error> {
+async fn uninstall(
+    client_mod: bool,
+    openasar: bool,
+    custom_path: Option<String>,
+) -> Result<(), Error> {
     let mut selected_location: DiscordLocation;
 
     if let Some(path) = custom_path {
@@ -106,10 +104,14 @@ async fn uninstall(client_mod: bool, openasar: bool, custom_path: Option<String>
     }
 
     if client_mod && selected_location.patched {
-        Installer::new(selected_location.clone(), None).unpatch().await?;
+        Installer::new(selected_location.clone(), None)
+            .unpatch()
+            .await?;
         selected_location.patched = false;
-    } else if openasar && selected_location.openasar  {
-        OpenAsarInstaller::new(selected_location.clone(), None).unpatch().await?;
+    } else if openasar && selected_location.openasar {
+        OpenAsarInstaller::new(selected_location.clone(), None)
+            .unpatch()
+            .await?;
     }
 
     Ok(())
@@ -126,7 +128,11 @@ pub async fn select_options() -> Result<(), Error> {
 
     let selection = tokio::task::spawn_blocking(move || {
         Select::new()
-            .with_prompt(style("Use ↑ ↓ and Enter to select an option").bold().to_string())
+            .with_prompt(
+                style("Use ↑ ↓ and Enter to select an option")
+                    .bold()
+                    .to_string(),
+            )
             .items(&options)
             .default(0)
             .interact()
@@ -159,34 +165,45 @@ pub async fn select_options() -> Result<(), Error> {
 async fn select_location() -> Result<DiscordLocation, Error> {
     let locations = get_discord_locations().ok_or(Error::ErrLocationInvalid)?;
 
-    let items: Vec<String> = locations.iter().map(|location| {
-        let mut instance = Vec::new();
-        instance.push(location.branch.to_string());
-        if location.is_flatpak {
-            instance.push("Flatpak".to_owned());
-        }
+    let items: Vec<String> = locations
+        .iter()
+        .map(|location| {
+            let mut instance = Vec::new();
+            instance.push(location.branch.to_string());
+            if location.is_flatpak {
+                instance.push("Flatpak".to_owned());
+            }
 
-        let mut tags = Vec::new();
-        if location.patched {
-            tags.push("[INSTALLED]");
-        }
-        if location.openasar {
-            tags.push("[OPENASAR]");
-        }
+            let mut tags = Vec::new();
+            if location.patched {
+                tags.push("[INSTALLED]");
+            }
+            if location.openasar {
+                tags.push("[OPENASAR]");
+            }
 
-        let tags_str = if tags.is_empty() { String::new() } else { format!(" {}", tags.join(" ")) };
+            let tags_str = if tags.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", tags.join(" "))
+            };
 
-        format!(
-            "{}{} – {}",
-            instance.join(", "),
-            tags_str,
-            location.path.to_string()
-        )
-    }).collect();
+            format!(
+                "{}{} – {}",
+                instance.join(", "),
+                tags_str,
+                location.path.to_string()
+            )
+        })
+        .collect();
 
     let selection = tokio::task::spawn_blocking(move || {
         Select::new()
-            .with_prompt(style("Use ↑ ↓ and Enter to select a Discord location").bold().to_string())
+            .with_prompt(
+                style("Use ↑ ↓ and Enter to select a Discord location")
+                    .bold()
+                    .to_string(),
+            )
             .items(&items)
             .default(0)
             .interact()
@@ -195,6 +212,6 @@ async fn select_location() -> Result<DiscordLocation, Error> {
 
     match selection {
         Ok(Ok(idx)) => Ok(locations[idx].clone()),
-        _ => Err(Error::ErrLocationInvalid)
+        _ => Err(Error::ErrLocationInvalid),
     }
 }

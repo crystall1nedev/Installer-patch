@@ -2,17 +2,12 @@ use std::{error::Error, rc::Rc};
 use tokio::sync::mpsc;
 
 use vencord_installer_core::{
-    RELEASE_URL, 
-    RELEASE_URL_FALLBACK,
-    get_dist_path,
+    RELEASE_URL, RELEASE_URL_FALLBACK, get_dist_path,
     paths::{
-        branch::{
-            DiscordBranch as CoreDiscordBranch,
-            DiscordLocation as CoreDiscordLocation
-        },
-        locations::get_discord_locations
-    }, 
-    update::version_check::{check_hash_from_release, check_local_version}
+        branch::{DiscordBranch as CoreDiscordBranch, DiscordLocation as CoreDiscordLocation},
+        locations::get_discord_locations,
+    },
+    update::version_check::{check_hash_from_release, check_local_version},
 };
 
 use crate::operations::{AppActions, AppMessage, AppOperation};
@@ -30,32 +25,34 @@ impl VencordInstallerApp {
     pub async fn new() -> Result<Self, Box<dyn Error>> {
         let app = AppWindow::new()?;
         let app_weak = app.as_weak();
-        
+
         let (operation_tx, operation_rx) = mpsc::unbounded_channel();
         let (message_tx, message_rx) = mpsc::unbounded_channel();
-        
+
         let actions = AppActions::new(operation_rx, message_tx);
         tokio::spawn(actions.run());
-        
+
         let mut gui_app = Self {
             app,
             app_weak: app_weak.clone(),
             operation_tx,
             message_rx,
         };
-        
+
         gui_app.initialize().await?;
         gui_app.start_message_handler();
         Ok(gui_app)
     }
-    
+
     pub fn run(self) -> Result<(), slint::PlatformError> {
         self.app.run()
     }
 
     async fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
-        self.app.global::<AppInfo>().set_version(env!("CARGO_PKG_VERSION").into());
-        
+        self.app
+            .global::<AppInfo>()
+            .set_version(env!("CARGO_PKG_VERSION").into());
+
         self.check_versions().await;
         self.setup_callbacks();
         self.refresh_discord_locations();
@@ -63,36 +60,40 @@ impl VencordInstallerApp {
     }
 
     async fn check_versions(&self) {
-        if let Some(remote_hash) = check_hash_from_release(RELEASE_URL, Some(RELEASE_URL_FALLBACK)).await {
+        if let Some(remote_hash) =
+            check_hash_from_release(RELEASE_URL, Some(RELEASE_URL_FALLBACK)).await
+        {
             self.update_ui(move |app| {
-                app.global::<AppInfo>().set_remote_vc_version(remote_hash.into());
+                app.global::<AppInfo>()
+                    .set_remote_vc_version(remote_hash.into());
             });
         }
-        
+
         if let Some(local_hash) = check_local_version(&get_dist_path(None), None).await {
             self.update_ui(move |app| {
-                app.global::<AppInfo>().set_local_vc_version(local_hash.into());
+                app.global::<AppInfo>()
+                    .set_local_vc_version(local_hash.into());
             });
         }
     }
 
-    fn update_ui<F>(&self, f: F) 
-    where 
-        F: FnOnce(&AppWindow) + Send + 'static 
+    fn update_ui<F>(&self, f: F)
+    where
+        F: FnOnce(&AppWindow) + Send + 'static,
     {
         Self::invoke_ui_update(self.app_weak.clone(), f);
     }
 
     fn setup_callbacks(&self) {
         let callbacks = self.app.global::<RustCallbacks>();
-        
+
         let app_weak = self.app_weak.clone();
         callbacks.on_refresh_locations(move || {
             if let Some(app) = app_weak.upgrade() {
                 Self::refresh_locations(&app);
             }
         });
-        
+
         let tx_install = self.operation_tx.clone();
         callbacks.on_do_install(move |location| {
             let loc: CoreDiscordLocation = (&location).into();
@@ -108,7 +109,7 @@ impl VencordInstallerApp {
                 tx_uninstall.send(AppOperation::Uninstall(loc)).ok();
             }
         });
-        
+
         let tx_o_install = self.operation_tx.clone();
         callbacks.on_do_o_install(move |location| {
             let loc: CoreDiscordLocation = (&location).into();
@@ -121,13 +122,17 @@ impl VencordInstallerApp {
         callbacks.on_do_o_uninstall(move |location| {
             let loc: CoreDiscordLocation = (&location).into();
             if loc.openasar {
-                tx_o_uninstall.send(AppOperation::UninstallOpenAsar(loc)).ok();
+                tx_o_uninstall
+                    .send(AppOperation::UninstallOpenAsar(loc))
+                    .ok();
             }
         });
-        
+
         let tx_repair = self.operation_tx.clone();
         callbacks.on_do_repair(move |location| {
-            tx_repair.send(AppOperation::Repair((&location).into())).ok();
+            tx_repair
+                .send(AppOperation::Repair((&location).into()))
+                .ok();
         });
 
         let tx_open_appdata = self.operation_tx.clone();
@@ -135,7 +140,7 @@ impl VencordInstallerApp {
             tx_open_appdata.send(AppOperation::OpenAppData).ok();
         });
     }
-    
+
     fn refresh_discord_locations(&self) {
         Self::refresh_locations(&self.app);
     }
@@ -144,25 +149,23 @@ impl VencordInstallerApp {
         if let Some(core_locations) = get_discord_locations() {
             let locations: Vec<DiscordLocation> = core_locations.iter().map(Into::into).collect();
             let locations_model = Rc::new(slint::VecModel::from(locations));
-            app.global::<DiscordLocationAdapter>().set_locations(locations_model.into());
+            app.global::<DiscordLocationAdapter>()
+                .set_locations(locations_model.into());
         }
         app.global::<PageManager>().set_current_page_index(0);
     }
 
     fn start_message_handler(&mut self) {
         let app_weak = self.app_weak.clone();
-        let mut message_rx = std::mem::replace(
-            &mut self.message_rx,
-            mpsc::unbounded_channel().1
-        );
-        
+        let mut message_rx = std::mem::replace(&mut self.message_rx, mpsc::unbounded_channel().1);
+
         tokio::spawn(async move {
             while let Some(message) = message_rx.recv().await {
                 Self::handle_message(message, &app_weak);
             }
         });
     }
-    
+
     fn handle_message(message: AppMessage, app_weak: &slint::Weak<AppWindow>) {
         match message {
             AppMessage::OperationSuccess => {
@@ -175,7 +178,7 @@ impl VencordInstallerApp {
             }
         }
     }
-    
+
     fn invoke_ui_update<F>(app_weak: slint::Weak<AppWindow>, f: F)
     where
         F: FnOnce(&AppWindow) + Send + 'static,
@@ -184,14 +187,16 @@ impl VencordInstallerApp {
             if let Some(app) = app_weak.upgrade() {
                 f(&app);
             }
-        }).ok();
+        })
+        .ok();
     }
-    
+
     fn show_error_dialog(app_weak: slint::Weak<AppWindow>, error: String, show_open_appdata: bool) {
         Self::invoke_ui_update(app_weak, move |app| {
             app.global::<ErrorDialog>().set_message(error.into());
             app.global::<ErrorDialog>().set_visible(true);
-            app.global::<ErrorDialog>().set_open_appdata(show_open_appdata);
+            app.global::<ErrorDialog>()
+                .set_open_appdata(show_open_appdata);
         });
     }
 }

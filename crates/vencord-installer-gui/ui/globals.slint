@@ -20,18 +20,11 @@ export global DiscordLocationAdapter {
     in property <DiscordLocation> selected_location;
 
     public pure function branch_name(branch: DiscordBranch) -> string {
-        return branch == DiscordBranch.Stable ? "Stable" :
-               branch == DiscordBranch.PTB ? "PTB" :
-               branch == DiscordBranch.Canary ? "Canary" :
-               branch == DiscordBranch.Development ? "Development" : "";
+        return branch == DiscordBranch.Stable ? "Stable" : branch == DiscordBranch.PTB ? "PTB" : branch == DiscordBranch.Canary ? "Canary" : branch == DiscordBranch.Development ? "Development" : "";
     }
 
     public pure function branch_icon(branch: DiscordBranch) -> image {
-        return branch == DiscordBranch.Stable ? @image-url("assets/stable.svg") :
-               branch == DiscordBranch.PTB ? @image-url("assets/stable.svg") :
-               branch == DiscordBranch.Canary ? @image-url("assets/canary.svg") :
-               branch == DiscordBranch.Development ? @image-url("assets/development.svg") :
-               @image-url("assets/stable.svg");
+        return branch == DiscordBranch.Stable ? @image-url("assets/stable.svg") : branch == DiscordBranch.PTB ? @image-url("assets/stable.svg") : branch == DiscordBranch.Canary ? @image-url("assets/canary.svg") : branch == DiscordBranch.Development ? @image-url("assets/development.svg") : @image-url("assets/stable.svg");
     }
 }
 

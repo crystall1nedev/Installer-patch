@@ -18,7 +18,9 @@ async fn main() -> Result<(), Error> {
     // macOS/Linux don't need root (mainly to keep environment variables)
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     if unsafe { geteuid() } == 0 {
-        return Err(Error::ErrInvalidArguments("Please run this program without root, and make sure your terminal has Developer Tool permissions and Full Disk Access!"));
+        return Err(Error::ErrInvalidArguments(
+            "Please run this program without root, and make sure your terminal has Developer Tool permissions and Full Disk Access!",
+        ));
     }
 
     let cli = Cli::parse();

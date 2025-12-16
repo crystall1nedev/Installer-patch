@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use crate::paths::branch::{DiscordBranch, DiscordLocation};
-use crate::paths::shared::{is_location_flatpak, is_location_openasar, is_location_patched, is_location_system_electron};
+use crate::paths::shared::{
+    is_location_flatpak, is_location_openasar, is_location_patched, is_location_system_electron,
+};
 
 const DISCORD_LOCATIONS: [&str; 15] = [
     "Discord",
@@ -59,7 +61,7 @@ pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
 
 fn parse_discord_location(full_path: &PathBuf) -> DiscordLocation {
     let mut full_path = full_path.to_path_buf();
-    
+
     let discord_location = full_path
         .file_name()
         .and_then(|n| n.to_str())
@@ -69,7 +71,8 @@ fn parse_discord_location(full_path: &PathBuf) -> DiscordLocation {
     let is_flatpak = is_location_flatpak(&full_path);
 
     if is_flatpak {
-        let name = full_path.file_name()
+        let name = full_path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("")
             .strip_prefix("com.discordapp.")
@@ -100,13 +103,13 @@ fn parse_discord_location(full_path: &PathBuf) -> DiscordLocation {
 }
 
 /// Returns and creates the data path for the given name.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `data_dir` - The name of the data directory.
-/// 
+///
 /// # Returns
-/// 
+///
 /// Returns the path to the data directory.
 pub fn get_data_path(data_dir: &str) -> PathBuf {
     let home_dir = std::env::var("HOME").unwrap_or_default();
@@ -123,6 +126,5 @@ pub fn get_data_path(data_dir: &str) -> PathBuf {
 
 /// Returns the path to the resources directory for Discord.
 pub fn get_discord_resource_location() -> PathBuf {
-    PathBuf::new()
-        .join("resources")
+    PathBuf::new().join("resources")
 }

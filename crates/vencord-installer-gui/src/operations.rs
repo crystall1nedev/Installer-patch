@@ -1,12 +1,9 @@
 use tokio::sync::mpsc;
 
 use vencord_installer_core::{
-    Error, OPENASAR_URL, download, get_dist_path, 
-    patch::{
-        patch_mod::Installer, 
-        patch_openasar::OpenAsarInstaller
-    },
-    paths::branch::DiscordLocation
+    Error, OPENASAR_URL, download, get_dist_path,
+    patch::{patch_mod::Installer, patch_openasar::OpenAsarInstaller},
+    paths::branch::DiscordLocation,
 };
 
 #[derive(Debug, Clone)]
@@ -44,15 +41,15 @@ impl AppActions {
     pub async fn run(mut self) {
         while let Some(operation) = self.operation_rx.recv().await {
             let result = self.handle_operation(operation).await;
-            
+
             let message = match result {
                 Ok(()) => AppMessage::OperationSuccess,
                 Err(err) => AppMessage::OperationError(
                     err.format_error(),
-                    matches!(err, Error::ErrWindowsMovedDirectory)
+                    matches!(err, Error::ErrWindowsMovedDirectory),
                 ),
             };
-            
+
             let _ = self.message_tx.send(message);
         }
     }
@@ -72,17 +69,16 @@ impl AppActions {
         if location.patched {
             return Err(Error::ErrLocationPatched);
         }
-        
+
         if std::env::var("VENCORD_DEV_INSTALL").map_or(true, |v| v != "1") {
             download().await?;
         }
 
-        Installer::new(
-            location.clone(), 
-            Some(get_dist_path(None))
-        ).patch().await
+        Installer::new(location.clone(), Some(get_dist_path(None)))
+            .patch()
+            .await
     }
-    
+
     async fn uninstall(location: DiscordLocation) -> Result<(), Error> {
         if !location.patched {
             return Err(Error::ErrLocationNotPatched);
@@ -103,10 +99,9 @@ impl AppActions {
             return Err(Error::ErrLocationPatched);
         }
 
-        OpenAsarInstaller::new(
-            location, 
-            Some(get_dist_path(None))
-        ).patch(OPENASAR_URL).await
+        OpenAsarInstaller::new(location, Some(get_dist_path(None)))
+            .patch(OPENASAR_URL)
+            .await
     }
 
     async fn uninstall_openasar(location: DiscordLocation) -> Result<(), Error> {
@@ -129,5 +124,4 @@ impl AppActions {
 
         Ok(())
     }
-    
 }

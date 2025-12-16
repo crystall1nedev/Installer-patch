@@ -1,26 +1,22 @@
 use std::path::PathBuf;
 
 use crate::Error;
+use crate::paths::branch::DiscordLocation;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
 use crate::paths::shared::{resource_dir_path, use_appropriate_asar};
-use crate::paths::branch::DiscordLocation;
 use crate::update::download::download_file;
 
 pub struct OpenAsarInstaller {
     discord_location: DiscordLocation,
     data_path: Option<PathBuf>,
 }
-    
-impl OpenAsarInstaller {
 
-    pub fn new(
-        discord_location: DiscordLocation,
-        data_path: Option<PathBuf>
-    ) -> Self {
-        OpenAsarInstaller { 
+impl OpenAsarInstaller {
+    pub fn new(discord_location: DiscordLocation, data_path: Option<PathBuf>) -> Self {
+        OpenAsarInstaller {
             discord_location,
-            data_path
+            data_path,
         }
     }
 
@@ -39,16 +35,20 @@ impl OpenAsarInstaller {
 
         let data_path = &self.data_path.clone().ok_or(Error::ErrNoDataPath)?;
 
-        let resource_dir = resource_dir_path(&self.discord_location, self.discord_location.is_system_electron);
+        let resource_dir = resource_dir_path(
+            &self.discord_location,
+            self.discord_location.is_system_electron,
+        );
         let asar_path = resource_dir.join(use_appropriate_asar(self.discord_location.patched));
         let dl_tmp_asar_path = data_path.join("app.asar");
 
-        log::info!("Patching {} using remote asar: {}", self.discord_location.path.as_str(), patched_asar_file_url);
+        log::info!(
+            "Patching {} using remote asar: {}",
+            self.discord_location.path.as_str(),
+            patched_asar_file_url
+        );
 
-        download_file(
-            patched_asar_file_url, 
-            dl_tmp_asar_path.clone()
-        ).await?;
+        download_file(patched_asar_file_url, dl_tmp_asar_path.clone()).await?;
 
         super::rename(&asar_path, &resource_dir.join("app.asar.backup")).await?;
         super::copy(&dl_tmp_asar_path, &asar_path).await?;
@@ -57,7 +57,7 @@ impl OpenAsarInstaller {
 
         Ok(())
     }
-    
+
     // MARK: - Unpatch
     pub async fn unpatch(&self) -> Result<(), Error> {
         if !self.discord_location.openasar {
@@ -65,7 +65,10 @@ impl OpenAsarInstaller {
             return Err(Error::ErrLocationNotPatched);
         }
 
-        let resource_dir = resource_dir_path(&self.discord_location, self.discord_location.is_system_electron);
+        let resource_dir = resource_dir_path(
+            &self.discord_location,
+            self.discord_location.is_system_electron,
+        );
         let asar_path = resource_dir.join(use_appropriate_asar(self.discord_location.patched));
 
         log::info!("Unpatching {}", self.discord_location.path.as_str());
@@ -76,7 +79,7 @@ impl OpenAsarInstaller {
 
         let backup_paths = [
             resource_dir.join("app.asar.backup"),
-            resource_dir.join("app.asar.original")
+            resource_dir.join("app.asar.original"),
         ];
 
         match backup_paths.iter().find(|&path| path.exists()) {

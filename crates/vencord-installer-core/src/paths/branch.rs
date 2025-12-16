@@ -4,7 +4,7 @@ pub enum DiscordBranch {
     Stable,
     PTB,
     Canary,
-    Development
+    Development,
 }
 
 impl DiscordBranch {
@@ -21,12 +21,16 @@ impl DiscordBranch {
 
 impl std::fmt::Display for DiscordBranch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            DiscordBranch::Canary => "Canary",
-            DiscordBranch::Development => "Development",
-            DiscordBranch::PTB => "PTB",
-            DiscordBranch::Stable => "Stable"
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                DiscordBranch::Canary => "Canary",
+                DiscordBranch::Development => "Development",
+                DiscordBranch::PTB => "PTB",
+                DiscordBranch::Stable => "Stable",
+            }
+        )
     }
 }
 
@@ -43,7 +47,7 @@ pub struct DiscordLocation {
     /// Whether the Discord installation has been patched with openasar
     pub openasar: bool,
     /// If its a flatpak installation: https://flatpak.org/
-    pub is_flatpak: bool, 
+    pub is_flatpak: bool,
     /// Arch package, needs special care: https://aur.archlinux.org/packages/discord_arch_electron
     pub is_system_electron: bool,
 }

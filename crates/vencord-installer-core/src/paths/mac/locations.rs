@@ -26,7 +26,9 @@ pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
         .flat_map(|base| {
             DISCORD_LOCATIONS.iter().filter_map(|&discord_location| {
                 let full_path = base.join(discord_location);
-                full_path.exists().then(|| parse_discord_location(&full_path))
+                full_path
+                    .exists()
+                    .then(|| parse_discord_location(&full_path))
             })
         })
         .flatten()
@@ -44,7 +46,7 @@ fn parse_discord_location(full_path: &Path) -> Option<DiscordLocation> {
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or_default();
-    
+
     let patched = is_location_patched(full_path, &false);
 
     Some(DiscordLocation {
@@ -60,13 +62,13 @@ fn parse_discord_location(full_path: &Path) -> Option<DiscordLocation> {
 }
 
 /// Returns and creates the data path for the given name.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `data_dir` - The name of the data directory.
-/// 
+///
 /// # Returns
-/// 
+///
 /// Returns the path to the data directory.
 pub fn get_data_path(data_dir: &str) -> PathBuf {
     let home_dir = std::env::var("HOME").unwrap_or_default();
@@ -83,7 +85,5 @@ pub fn get_data_path(data_dir: &str) -> PathBuf {
 
 /// Returns the path to the resources directory for Discord.
 pub fn get_discord_resource_location() -> PathBuf {
-    PathBuf::new()
-        .join("Contents")
-        .join("Resources")
+    PathBuf::new().join("Contents").join("Resources")
 }
