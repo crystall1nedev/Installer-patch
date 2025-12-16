@@ -127,13 +127,10 @@ impl VencordInstallerApp {
             tx_repair.send(AppOperation::Repair((&location).into())).ok();
         });
 
-        #[cfg(target_os = "windows")]
-        {
-            let tx_open_appdata = self.operation_tx.clone();
-            callbacks.on_do_open_appdata(move || {
-                tx_open_appdata.send(AppOperation::OpenAppData()).ok();
-            });
-        }
+        let tx_open_appdata = self.operation_tx.clone();
+        callbacks.on_do_open_appdata(move || {
+            tx_open_appdata.send(AppOperation::OpenAppData).ok();
+        });
     }
     
     fn refresh_discord_locations(&self) {

@@ -15,8 +15,7 @@ pub enum AppOperation {
     Repair(DiscordLocation),
     InstallOpenAsar(DiscordLocation),
     UninstallOpenAsar(DiscordLocation),
-    #[cfg(target_os = "windows")]
-    OpenAppData(DiscordLocation),
+    OpenAppData,
 }
 
 #[derive(Debug, Clone)]
@@ -48,8 +47,8 @@ impl AppActions {
             let message = match result {
                 Ok(()) => AppMessage::OperationSuccess,
                 Err(err) => AppMessage::OperationError(
-                    err.format_error(), 
-                    matches!(err, Error::ErrWindowsMovedDirectory) // Show "Open AppData" button only for this error
+                    err.format_error(),
+                    matches!(err, Error::ErrWindowsMovedDirectory)
                 ),
             };
             
@@ -64,8 +63,7 @@ impl AppActions {
             AppOperation::Repair(location) => Self::repair(location).await,
             AppOperation::InstallOpenAsar(location) => Self::install_openasar(location).await,
             AppOperation::UninstallOpenAsar(location) => Self::uninstall_openasar(location).await,
-            #[cfg(target_os = "windows")]
-            AppOperation::OpenAppData(_) => Self::open_appdata().await,
+            AppOperation::OpenAppData => Self::open_appdata().await,
         }
     }
 
@@ -120,13 +118,15 @@ impl AppActions {
         OpenAsarInstaller::new(location).unpatch().await
     }
 
-    #[cfg(target_os = "windows")]
     async fn open_appdata() -> Result<(), Error> {
-        use std::process::Command;
-        Command::new("explorer")
-            .arg("%APPDATA%")
-            .spawn()
-            .map_err(|e| Error::ErrIo(e))?;
+        #[cfg(target_os = "windows")]
+        {
+            use std::process::Command;
+            Command::new("explorer")
+                .arg("%APPDATA%")
+                .spawn()
+                .map_err(|e| Error::ErrIo(e))?;
+        }
 
         Ok(())
     }
