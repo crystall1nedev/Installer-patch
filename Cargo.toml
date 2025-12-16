@@ -1,9 +1,9 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/cli",
-    "crates/gui",
-    "crates/core",
+    "crates/vencord-installer-cli",
+    "crates/vencord-installer-gui",
+    "crates/vencord-installer-core",
 ]
 
 [workspace.package]
