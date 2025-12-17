@@ -68,6 +68,8 @@ pub enum Error {
     ErrSerdeJson(#[from] serde_json::Error),
     #[error("I/O error: {0}")]
     ErrIo(#[from] std::io::Error),
+    #[error("Tokio Join error: {0}")]
+    ErrJoin(#[from] tokio::task::JoinError),
 }
 
 impl Error {

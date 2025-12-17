@@ -26,7 +26,7 @@ const DISCORD_LOCATIONS: [&str; 15] = [
 
 /// Returns a list of available DiscordLocations on the machine.
 pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
-    let home_dir = std::env::var("HOME").ok()?;
+    let home_dir = find_home()?;
     let home_dir_path = Path::new(&home_dir);
 
     let paths = [
@@ -39,9 +39,7 @@ pub fn get_discord_locations() -> Option<Vec<DiscordLocation>> {
         Path::new("/var/lib/flatpak/app"),
         Path::new(".local/share/flatpak/app"),
     ];
-
-    // TODO: sudo -E fucks with HOME env var
-
+    
     let locations: Vec<DiscordLocation> = paths
         .iter()
         .flat_map(|base| {
@@ -112,7 +110,7 @@ fn parse_discord_location(full_path: &PathBuf) -> DiscordLocation {
 ///
 /// Returns the path to the data directory.
 pub fn get_data_path(data_dir: &str) -> PathBuf {
-    let home_dir = std::env::var("HOME").unwrap_or_default();
+    let home_dir = find_home().unwrap_or_default();
 
     let dir = Path::new(&home_dir)
         .join(".config")
@@ -127,4 +125,51 @@ pub fn get_data_path(data_dir: &str) -> PathBuf {
 /// Returns the path to the resources directory for Discord.
 pub fn get_discord_resource_location() -> PathBuf {
     PathBuf::new().join("resources")
+}
+
+fn get_user_info(username: &str) -> Option<(String, u32, u32)> {
+    std::fs::read_to_string("/etc/passwd")
+        .ok()
+        .and_then(|contents| {
+            contents
+                .lines()
+                .find(|line| line.starts_with(&format!("{}:", username)))
+                .and_then(|line| {
+                    let parts: Vec<&str> = line.split(':').collect();
+                    if parts.len() >= 6 {
+                        let home = parts[5].to_string();
+                        let uid = parts[2].parse::<u32>().ok()?;
+                        let gid = parts[3].parse::<u32>().ok()?;
+                        Some((home, uid, gid))
+                    } else {
+                        None
+                    }
+                })
+        })
+}
+
+fn find_home() -> Option<String> {
+    std::env::var("SUDO_USER")
+        .or_else(|_| std::env::var("DOAS_USER"))
+        .ok()
+        .and_then(|user| get_user_info(&user).map(|(home, _, _)| home))
+        .or_else(|| std::env::var("HOME").ok())
+        .filter(|h| !h.is_empty())
+}
+
+pub async fn copy_ownership_permissions(to: &PathBuf) -> Result<(), crate::Error> {
+    use std::os::unix::fs::chown;
+
+    let (uid, gid) = std::env::var("SUDO_USER")
+        .or_else(|_| std::env::var("DOAS_USER"))
+        .ok()
+        .and_then(|user| get_user_info(&user).map(|(_, uid, gid)| (uid, gid)))
+        .ok_or(crate::Error::ErrPermissionDenied)?;
+
+    let to = to.clone();
+    tokio::task::spawn_blocking(move || {
+        chown(to, Some(uid), Some(gid))
+    }).await?.ok();
+
+    Ok(())
 }

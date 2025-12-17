@@ -88,10 +88,15 @@ impl AppActions {
     }
 
     async fn repair(location: DiscordLocation) -> Result<(), Error> {
-        if location.patched {
-            Self::uninstall(location.clone()).await?;
+        if std::env::var("VENCORD_DEV_INSTALL").map_or(true, |v| v != "1") {
+            download().await?;
         }
-        Self::install(location).await
+
+        if !location.patched {
+            Self::install(location).await?;
+        }
+
+        Ok(())
     }
 
     async fn install_openasar(location: DiscordLocation) -> Result<(), Error> {

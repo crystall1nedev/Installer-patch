@@ -19,6 +19,9 @@ pub struct PatchArgs {
     /// Uninstall Vencord client mod
     #[arg(long, short)]
     pub uninstall: bool,
+    /// Repair Vencord client mod
+    #[arg(long, short)]
+    pub repair: bool,
     /// Install OpenAsar
     #[arg(long = "install-openasar", short = 'o')]
     pub install_openasar: bool,
@@ -43,10 +46,18 @@ pub async fn execute(args: PatchArgs) -> Result<(), Error> {
         ));
     }
 
+    if args.repair && (args.install_openasar || args.uninstall_openasar) {
+        return Err(Error::ErrInvalidArguments(
+            "Repair cannot be used with OpenAsar install/uninstall commands.",
+        ));
+    }
+
     if args.install || args.install_openasar {
         install(args.install, args.install_openasar, args.custom).await?;
     } else if args.uninstall || args.uninstall_openasar {
         uninstall(args.uninstall, args.uninstall_openasar, args.custom).await?;
+    } else if args.repair {
+        repair(args.custom).await?;
     } else {
         select_options().await?;
     }
@@ -117,10 +128,38 @@ async fn uninstall(
     Ok(())
 }
 
+async fn repair(
+    custom_path: Option<String>,
+) -> Result<(), Error> {
+    let mut selected_location: DiscordLocation;
+
+    if let Some(path) = custom_path {
+        selected_location = match get_custom_discord_location(&path) {
+            Some(location) => location,
+            _ => return Err(Error::ErrLocationInvalid),
+        };
+    } else {
+        selected_location = select_location().await?;
+    }
+
+    if std::env::var("VENCORD_DEV_INSTALL").map_or(true, |v| v != "1") {
+        download().await?;
+    }
+
+    if !selected_location.patched {
+        Installer::new(selected_location.clone(), Some(get_dist_path(None)))
+            .patch()
+            .await?;
+    }
+
+    Ok(())
+}
+
 pub async fn select_options() -> Result<(), Error> {
     let options = [
         "Install Vencord",
         "Uninstall Vencord",
+        "Repair Vencord",
         "Install OpenAsar",
         "Uninstall OpenAsar",
         "Exit",
@@ -150,10 +189,14 @@ pub async fn select_options() -> Result<(), Error> {
         1 => {
             uninstall(true, false, None).await?;
         }
+        
         2 => {
-            install(false, true, None).await?;
+            repair(None).await?;
         }
         3 => {
+            install(false, true, None).await?;
+        }
+        4 => {
             uninstall(false, true, None).await?;
         }
         _ => {}

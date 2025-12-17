@@ -2,19 +2,25 @@ pub mod patch_mod;
 #[cfg(feature = "openasar")]
 pub mod patch_openasar;
 
-use crate::Error;
+use crate::{Error, paths::branch::DiscordLocation};
 use std::path::PathBuf;
+
+#[cfg(any(target_os = "linux"))]
+unsafe extern "C" {
+    unsafe fn geteuid() -> u32;
+}
 
 #[derive(Debug, Clone)]
 pub enum FileOperation {
     Move { from: PathBuf, to: PathBuf },
     Copy { from: PathBuf, to: PathBuf },
     Remove { path: PathBuf },
+    #[cfg(unix)]
     Cmd { string: String },
 }
 
 impl FileOperation {
-    #[cfg(target_os = "linux")]
+    #[cfg(unix)]
     fn to_shell_command(&self) -> String {
         match self {
             FileOperation::Move { from, to } => {
@@ -31,7 +37,7 @@ impl FileOperation {
     }
 }
 
-pub async fn execute_file_operations(operations: &[FileOperation]) -> Result<(), Error> {
+pub async fn execute_file_operations(operations: &[FileOperation], _location: &DiscordLocation) -> Result<(), Error> {
     let mut needs_elevated = false;
 
     log::debug!("Running operations: {:#?}", operations);
@@ -39,9 +45,29 @@ pub async fn execute_file_operations(operations: &[FileOperation]) -> Result<(),
     for operation in operations {
         let result = match operation {
             FileOperation::Move { from, to } => tokio::fs::rename(from, to).await,
-            FileOperation::Copy { from, to } => tokio::fs::copy(from, to).await.map(|_| ()),
+            FileOperation::Copy { from, to } => {
+                tokio::fs::copy(from, to).await.map(|_| ())?;
+                // users on linux running with sudo need special treatment
+                #[cfg(target_os = "linux")]
+                unsafe {
+                    if geteuid() == 0 {
+                        if !_location.is_flatpak {
+                            crate::paths::locations::copy_ownership_permissions(&to).await.ok();
+                        }
+                    }
+                }
+                Ok(())
+            },
             FileOperation::Remove { path } => tokio::fs::remove_file(path).await,
-            FileOperation::Cmd { .. } => Ok(()),
+            #[cfg(unix)]
+            FileOperation::Cmd { string } => {
+                tokio::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(string)
+                    .status()
+                    .await.ok();
+                Ok(())
+            }
         };
 
         if let Err(e) = result {
@@ -55,23 +81,21 @@ pub async fn execute_file_operations(operations: &[FileOperation]) -> Result<(),
     }
 
     // If we need elevated permissions, execute all operations with pkexec
-    // in a single command, so it only prompts once
+    // in a single command, so it only prompts once, only for linux as well
     if needs_elevated {
         #[cfg(target_os = "linux")]
         {
             log::warn!("Permission was denied, attempting to use pkexec instead...");
 
-            use std::process::Command;
-
             let commands: Vec<String> = operations.iter().map(|op| op.to_shell_command()).collect();
 
             let combined_command = commands.join(" && ");
 
-            let status = Command::new("pkexec")
+            let status = tokio::process::Command::new("pkexec")
                 .arg("sh")
                 .arg("-c")
                 .arg(&combined_command)
-                .status()?;
+                .status().await?;
 
             if status.success() {
                 Ok(())

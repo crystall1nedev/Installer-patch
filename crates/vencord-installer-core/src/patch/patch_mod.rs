@@ -1,6 +1,4 @@
 use std::path::PathBuf;
-#[cfg(target_os = "linux")]
-use std::{env, process::Command};
 #[cfg(feature = "generate_asar")]
 use {
     serde::Serialize,
@@ -13,11 +11,6 @@ use crate::paths::locations::is_scuffed_install;
 use crate::paths::shared::resource_dir_path;
 use crate::{Error, patch::FileOperation};
 use crate::{patch::execute_file_operations, paths::branch::DiscordLocation};
-
-#[cfg(target_os = "linux")]
-unsafe extern "C" {
-    unsafe fn geteuid() -> u32;
-}
 
 pub struct Installer {
     discord_location: DiscordLocation,
@@ -85,13 +78,14 @@ impl Installer {
             });
         }
 
-        // TODO: combine this
         #[cfg(target_os = "linux")]
         if self.discord_location.is_flatpak {
-            self.grant_flatpak_permissions()?;
+            let cmd = self.grant_flatpak_permissions()?;
+            log::info!("Flatpak permissions granted with command: {}", cmd);
+            opts.push(FileOperation::Cmd { string: cmd });
         }
 
-        execute_file_operations(&opts).await?;
+        execute_file_operations(&opts, &self.discord_location).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -137,7 +131,7 @@ impl Installer {
             });
         }
 
-        execute_file_operations(&opts).await?;
+        execute_file_operations(&opts, &self.discord_location).await?;
 
         log::info!("Unpatch applied successfully!");
 
@@ -205,7 +199,7 @@ impl Installer {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn grant_flatpak_permissions(&self) -> Result<(), Error> {
+    pub fn grant_flatpak_permissions(&self) -> Result<String, Error> {
         let data_path = self.data_path.clone().ok_or(Error::ErrNoDataPath)?;
 
         log::info!(
@@ -231,19 +225,8 @@ impl Installer {
         args.push(name);
         let filesystem_arg = format!("--filesystem={}", &data_path.to_string_lossy());
         args.push(&filesystem_arg);
-        let full_cmd = format!("flatpak {}", args.join(" "));
-
-        if !is_system_flatpak && unsafe { geteuid() } == 0 {
-            Command::new("pkexec")
-                .arg("sh")
-                .arg("-c")
-                .arg(&full_cmd)
-                .output()?;
-        } else {
-            Command::new("sh").arg("-c").arg(&full_cmd).output()?;
-        };
-
-        Ok(())
+        
+        Ok(format!("flatpak {}", args.join(" ")))
     }
 
     #[cfg(target_os = "linux")]

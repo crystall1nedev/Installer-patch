@@ -61,7 +61,7 @@ impl OpenAsarInstaller {
             from: dl_tmp_asar_path,
             to: asar_path,
         });
-        execute_file_operations(&opts).await?;
+        execute_file_operations(&opts, &self.discord_location).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -106,7 +106,7 @@ impl OpenAsarInstaller {
             _ => return Err(Error::ErrLocationInvalid),
         }
 
-        execute_file_operations(&opts).await?;
+        execute_file_operations(&opts, &self.discord_location).await?;
 
         log::info!("Unpatch applied successfully!");
 
