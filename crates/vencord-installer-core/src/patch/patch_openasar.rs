@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::Error;
+use crate::patch::{FileOperation, execute_file_operations};
 use crate::paths::branch::DiscordLocation;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
@@ -50,8 +51,17 @@ impl OpenAsarInstaller {
 
         download_file(patched_asar_file_url, dl_tmp_asar_path.clone()).await?;
 
-        super::rename(&asar_path, &resource_dir.join("app.asar.backup")).await?;
-        super::copy(&dl_tmp_asar_path, &asar_path).await?;
+        let mut opts: Vec<FileOperation> = vec![];
+        opts.push(FileOperation::Move {
+            from: asar_path.clone(),
+            to: resource_dir.join("app.asar.backup"),
+        });
+
+        opts.push(FileOperation::Copy {
+            from: dl_tmp_asar_path,
+            to: asar_path,
+        });
+        execute_file_operations(&opts).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -73,8 +83,12 @@ impl OpenAsarInstaller {
 
         log::info!("Unpatching {}", self.discord_location.path.as_str());
 
+        let mut opts: Vec<FileOperation> = vec![];
+
         if asar_path.exists() {
-            super::remove_file(&asar_path).await?;
+            opts.push(FileOperation::Remove {
+                path: asar_path.clone(),
+            });
         }
 
         let backup_paths = [
@@ -83,9 +97,16 @@ impl OpenAsarInstaller {
         ];
 
         match backup_paths.iter().find(|&path| path.exists()) {
-            Some(backup) => super::rename(backup, &asar_path).await?,
+            Some(backup) => {
+                opts.push(FileOperation::Move {
+                    from: backup.clone(),
+                    to: asar_path,
+                });
+            }
             _ => return Err(Error::ErrLocationInvalid),
         }
+
+        execute_file_operations(&opts).await?;
 
         log::info!("Unpatch applied successfully!");
 
