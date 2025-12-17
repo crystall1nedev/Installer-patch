@@ -93,6 +93,8 @@ async fn install(
         OpenAsarInstaller::new(selected_location.clone(), Some(get_dist_path(None)))
             .patch(OPENASAR_URL)
             .await?;
+    } else {
+        log::info!("Already installed, skipping!");
     }
 
     Ok(())
@@ -118,11 +120,12 @@ async fn uninstall(
         Installer::new(selected_location.clone(), None)
             .unpatch()
             .await?;
-        selected_location.patched = false;
     } else if openasar && selected_location.openasar {
         OpenAsarInstaller::new(selected_location.clone(), None)
             .unpatch()
             .await?;
+    } else {
+        log::info!("Not installed, skipping!");
     }
 
     Ok(())
@@ -150,6 +153,8 @@ async fn repair(
         Installer::new(selected_location.clone(), Some(get_dist_path(None)))
             .patch()
             .await?;
+    } else {
+        log::warn!("Vencord is already installed, skipping installation.");
     }
 
     Ok(())
@@ -185,19 +190,23 @@ pub async fn select_options() -> Result<(), Error> {
     match choice {
         0 => {
             install(true, false, None).await?;
+            Box::pin(select_options()).await?;
         }
         1 => {
             uninstall(true, false, None).await?;
+            Box::pin(select_options()).await?;
         }
-        
         2 => {
             repair(None).await?;
+            Box::pin(select_options()).await?;
         }
         3 => {
             install(false, true, None).await?;
+            Box::pin(select_options()).await?;
         }
         4 => {
             uninstall(false, true, None).await?;
+            Box::pin(select_options()).await?;
         }
         _ => {}
     }
