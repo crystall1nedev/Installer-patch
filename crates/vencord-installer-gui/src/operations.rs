@@ -88,12 +88,21 @@ impl AppActions {
     }
 
     async fn repair(location: DiscordLocation) -> Result<(), Error> {
+        let mut location = location;
+
         if std::env::var("VENCORD_DEV_INSTALL").map_or(true, |v| v != "1") {
             download().await?;
         }
 
+        if location.patched {
+            Installer::new(location.clone(), None).unpatch().await?;
+            location.patched = false;
+        }
+
         if !location.patched {
-            Self::install(location).await?;
+            Installer::new(location.clone(), Some(get_dist_path(None)))
+                .patch()
+                .await?;
         }
 
         Ok(())

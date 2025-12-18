@@ -12,15 +12,25 @@ unsafe extern "C" {
 
 #[derive(Debug, Clone)]
 pub enum FileOperation {
-    Move { from: PathBuf, to: PathBuf },
-    Copy { from: PathBuf, to: PathBuf },
-    Remove { path: PathBuf },
-    #[cfg(unix)]
-    Cmd { string: String },
+    Move {
+        from: PathBuf,
+        to: PathBuf,
+    },
+    Copy {
+        from: PathBuf,
+        to: PathBuf,
+    },
+    Remove {
+        path: PathBuf,
+    },
+    #[cfg(target_os = "linux")]
+    Cmd {
+        string: String,
+    },
 }
 
 impl FileOperation {
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     fn to_shell_command(&self) -> String {
         match self {
             FileOperation::Move { from, to } => {
@@ -37,7 +47,35 @@ impl FileOperation {
     }
 }
 
-pub async fn execute_file_operations(operations: &[FileOperation], _location: &DiscordLocation) -> Result<(), Error> {
+pub fn rename(from: &PathBuf, to: &PathBuf, opt: &mut Vec<FileOperation>) {
+    opt.push(FileOperation::Move {
+        from: from.clone(),
+        to: to.clone(),
+    });
+}
+
+pub fn copy(from: &PathBuf, to: &PathBuf, opt: &mut Vec<FileOperation>) {
+    opt.push(FileOperation::Copy {
+        from: from.clone(),
+        to: to.clone(),
+    });
+}
+
+pub fn remove(path: &PathBuf, opt: &mut Vec<FileOperation>) {
+    opt.push(FileOperation::Remove { path: path.clone() });
+}
+
+#[cfg(target_os = "linux")]
+pub fn cmd(command: &str, opt: &mut Vec<FileOperation>) {
+    opt.push(FileOperation::Cmd {
+        string: command.to_owned(),
+    });
+}
+
+pub async fn execute(
+    operations: &[FileOperation],
+    _location: &DiscordLocation,
+) -> Result<(), Error> {
     let mut needs_elevated = false;
 
     log::debug!("Running operations: {:#?}", operations);
@@ -52,20 +90,23 @@ pub async fn execute_file_operations(operations: &[FileOperation], _location: &D
                 unsafe {
                     if geteuid() == 0 {
                         if !_location.is_flatpak {
-                            crate::paths::locations::copy_ownership_permissions(&to).await.ok();
+                            crate::paths::locations::copy_ownership_permissions(&to)
+                                .await
+                                .ok();
                         }
                     }
                 }
                 Ok(())
-            },
+            }
             FileOperation::Remove { path } => tokio::fs::remove_file(path).await,
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             FileOperation::Cmd { string } => {
                 tokio::process::Command::new("sh")
                     .arg("-c")
                     .arg(string)
                     .status()
-                    .await.ok();
+                    .await
+                    .ok();
                 Ok(())
             }
         };
@@ -95,7 +136,8 @@ pub async fn execute_file_operations(operations: &[FileOperation], _location: &D
                 .arg("sh")
                 .arg("-c")
                 .arg(&combined_command)
-                .status().await?;
+                .status()
+                .await?;
 
             if status.success() {
                 Ok(())

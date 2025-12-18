@@ -105,7 +105,7 @@ async fn uninstall(
     openasar: bool,
     custom_path: Option<String>,
 ) -> Result<(), Error> {
-    let mut selected_location: DiscordLocation;
+    let selected_location: DiscordLocation;
 
     if let Some(path) = custom_path {
         selected_location = match get_custom_discord_location(&path) {
@@ -131,9 +131,7 @@ async fn uninstall(
     Ok(())
 }
 
-async fn repair(
-    custom_path: Option<String>,
-) -> Result<(), Error> {
+async fn repair(custom_path: Option<String>) -> Result<(), Error> {
     let mut selected_location: DiscordLocation;
 
     if let Some(path) = custom_path {
@@ -149,12 +147,17 @@ async fn repair(
         download().await?;
     }
 
+    if selected_location.patched {
+        Installer::new(selected_location.clone(), None)
+            .unpatch()
+            .await?;
+        selected_location.patched = false;
+    }
+
     if !selected_location.patched {
         Installer::new(selected_location.clone(), Some(get_dist_path(None)))
             .patch()
             .await?;
-    } else {
-        log::warn!("Vencord is already installed, skipping installation.");
     }
 
     Ok(())

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::Error;
-use crate::patch::{FileOperation, execute_file_operations};
+use crate::patch::{FileOperation, execute};
 use crate::paths::branch::DiscordLocation;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
@@ -61,7 +61,7 @@ impl OpenAsarInstaller {
             from: dl_tmp_asar_path,
             to: asar_path,
         });
-        execute_file_operations(&opts, &self.discord_location).await?;
+        execute(&opts, &self.discord_location).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -106,7 +106,7 @@ impl OpenAsarInstaller {
             _ => return Err(Error::ErrLocationInvalid),
         }
 
-        execute_file_operations(&opts, &self.discord_location).await?;
+        execute(&opts, &self.discord_location).await?;
 
         log::info!("Unpatch applied successfully!");
 

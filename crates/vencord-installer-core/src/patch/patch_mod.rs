@@ -6,11 +6,11 @@ use {
     tokio::{fs::File, io::AsyncWriteExt},
 };
 
+use crate::paths::branch::DiscordLocation;
 #[cfg(target_os = "windows")]
 use crate::paths::locations::is_scuffed_install;
 use crate::paths::shared::resource_dir_path;
 use crate::{Error, patch::FileOperation};
-use crate::{patch::execute_file_operations, paths::branch::DiscordLocation};
 
 pub struct Installer {
     discord_location: DiscordLocation,
@@ -57,35 +57,25 @@ impl Installer {
 
         let mut opts: Vec<FileOperation> = vec![];
 
-        opts.push(FileOperation::Move {
-            from: asar_path.clone(),
-            to: _asar_path,
-        });
-
-        opts.push(FileOperation::Copy {
-            from: data_path.join("app.asar"),
-            to: asar_path,
-        });
+        super::rename(&asar_path, &_asar_path, &mut opts);
+        super::copy(&data_path.join("app.asar"), &asar_path, &mut opts);
 
         #[cfg(target_os = "linux")]
         if self.discord_location.is_system_electron {
             let asar_path = resource_dir.join("app.asar.unpacked");
             let _asar_path = resource_dir.join("_app.asar.unpacked");
 
-            opts.push(FileOperation::Move {
-                from: asar_path,
-                to: _asar_path,
-            });
+            super::rename(&asar_path, &_asar_path, &mut opts);
         }
 
         #[cfg(target_os = "linux")]
         if self.discord_location.is_flatpak {
             let cmd = self.grant_flatpak_permissions()?;
             log::info!("Flatpak permissions granted with command: {}", cmd);
-            opts.push(FileOperation::Cmd { string: cmd });
+            super::cmd(&cmd, &mut opts);
         }
 
-        execute_file_operations(&opts, &self.discord_location).await?;
+        super::execute(&opts, &self.discord_location).await?;
 
         log::info!("Patch applied successfully!");
 
@@ -111,27 +101,19 @@ impl Installer {
         let mut opts: Vec<FileOperation> = vec![];
 
         if asar_path.exists() {
-            opts.push(FileOperation::Remove {
-                path: asar_path.clone(),
-            });
+            super::remove(&asar_path, &mut opts);
         }
-        opts.push(FileOperation::Move {
-            from: _asar_path,
-            to: asar_path,
-        });
+        super::rename(&_asar_path, &asar_path, &mut opts);
 
         #[cfg(target_os = "linux")]
         if self.discord_location.is_system_electron {
             let asar_path = resource_dir.join("app.asar.unpacked");
             let _asar_path = resource_dir.join("_app.asar.unpacked");
 
-            opts.push(FileOperation::Move {
-                from: _asar_path,
-                to: asar_path,
-            });
+            super::rename(&_asar_path, &asar_path, &mut opts);
         }
 
-        execute_file_operations(&opts, &self.discord_location).await?;
+        super::execute(&opts, &self.discord_location).await?;
 
         log::info!("Unpatch applied successfully!");
 
@@ -225,7 +207,7 @@ impl Installer {
         args.push(name);
         let filesystem_arg = format!("--filesystem={}", &data_path.to_string_lossy());
         args.push(&filesystem_arg);
-        
+
         Ok(format!("flatpak {}", args.join(" ")))
     }
 
