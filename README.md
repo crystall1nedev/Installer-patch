@@ -1,4 +1,4 @@
-# Vencord Installer
+ # Vencord Installer
 
 The Vencord Installer allows you to install [Vencord, the cutest Discord Desktop client mod](https://github.com/Vendicated/Vencord)
 
